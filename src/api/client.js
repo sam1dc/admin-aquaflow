@@ -1,7 +1,10 @@
 import axios from 'axios';
 
+// URL de producción por defecto si VITE_API_URL no está definida en la plataforma de despliegue (ej. Vercel)
+const DEFAULT_API_URL = 'https://aquaflow-api-qs31.onrender.com/api/v1';
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1',
+  baseURL: import.meta.env.VITE_API_URL || DEFAULT_API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
