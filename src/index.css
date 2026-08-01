@@ -1,0 +1,97 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@theme {
+  /* Brand Colors - AquaFlow Real Palette */
+  --color-primary: #3498DB;
+  --color-primary-dark: #2980B9;
+
+  /* Background & Surfaces */
+  --color-background: #09121F;
+  --color-background-card: #111E2E;
+  --color-background-hover: #1E2D3D;
+
+  /* Border */
+  --color-border: #1E2D3D;
+
+  /* Text */
+  --color-text-main: #F8FAFC;
+  --color-text-secondary: #94A3B8;
+  --color-text-muted: #64748B;
+
+  /* Status Colors */
+  --color-status-success: #10B981;
+  --color-status-neon: #00FFC2;
+  --color-status-error: #EF4444;
+  --color-status-warning: #F59E0B;
+  --color-status-location: #00D2FF;
+
+  /* Font Family */
+  --font-sans: 'Inter', sans-serif;
+
+  /* Box Shadows */
+  --shadow-glow: 0 0 15px rgba(52, 152, 219, 0.3);
+  --shadow-neon: 0 0 15px rgba(0, 255, 194, 0.4);
+
+  /* Animations */
+  --animate-fade-in: fade-in 0.4s ease forwards;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Base Layer ─────────────────────────────────────────────── */
+@layer base {
+  body {
+    @apply bg-background text-text-main antialiased min-h-screen overflow-x-hidden font-sans;
+  }
+
+  a {
+    @apply text-primary no-underline transition-colors duration-150;
+  }
+
+  a:hover {
+    @apply text-primary-dark;
+  }
+
+  /* Form Elements */
+  input, select, textarea {
+    @apply w-full py-3 px-4 bg-background-card border border-border rounded-xl text-text-main text-sm transition-all duration-150;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    @apply outline-none border-primary ring-2 ring-primary/20;
+  }
+
+  input::placeholder, textarea::placeholder {
+    @apply text-text-muted;
+  }
+}
+
+/* ─── Component Layer ────────────────────────────────────────── */
+@layer components {
+  .glass {
+    @apply bg-background-card/80 backdrop-blur-md border border-border;
+  }
+}
+
+/* ─── Scrollbar ──────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-background-hover);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}

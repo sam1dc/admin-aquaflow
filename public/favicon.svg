@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <path 
+    d="M50 6C50 6 16 42 16 64C16 82.7777 31.2223 98 50 98C68.7777 98 84 82.7777 84 64C84 42 50 6 50 6Z" 
+    fill="#70C5FF"
+    transform="rotate(-22 50 52)"
+  />
+  <path 
+    d="M 36 66 A 14 14 0 0 0 60 66" 
+    stroke="#09121F" 
+    strokeWidth="7.5" 
+    strokeLinecap="round" 
+    transform="rotate(-22 50 52)"
+  />
+</svg>
