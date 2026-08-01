@@ -3,7 +3,7 @@ import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
-import { Pencil, Plus, Tag, RefreshCw, DollarSign, Coins } from 'lucide-react';
+import { Pencil, Plus, Tag, RefreshCw, DollarSign, Coins, Trash2 } from 'lucide-react';
 import api from '../api/client';
 import { getBcvRate } from '../api/bcv';
 
@@ -58,6 +58,20 @@ export const Tarifas = () => {
       activo: tarifa.activo ?? true 
     });
     setIsModalOpen(true);
+  };
+
+  const handleDelete = async (id_tarifa) => {
+    if (!window.confirm('¿Estás seguro de que deseas eliminar esta tarifa?')) {
+      return;
+    }
+
+    try {
+      const res = await api.delete(`/admin/tarifas/${id_tarifa}`);
+      alert(res.data?.message || 'Tarifa eliminada exitosamente');
+      fetchTarifas();
+    } catch (error) {
+      alert(`Error al eliminar tarifa: ${error.response?.data?.error || error.message}`);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -179,14 +193,24 @@ export const Tarifas = () => {
                           <Badge variant={t.activo ? 'success' : 'error'}>{t.activo ? 'Activa' : 'Inactiva'}</Badge>
                         </td>
                         <td className="py-3.5 px-4 text-right">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => handleOpenEdit(t)}
-                            className="inline-flex items-center gap-1.5"
-                          >
-                            <Pencil size={14} /> Editar
-                          </Button>
+                          <div className="flex items-center justify-end gap-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => handleOpenEdit(t)}
+                              className="inline-flex items-center gap-1.5"
+                            >
+                              <Pencil size={14} /> Editar
+                            </Button>
+                            <Button 
+                              variant="danger" 
+                              size="sm" 
+                              onClick={() => handleDelete(t.id_tarifa)}
+                              className="inline-flex items-center gap-1.5"
+                            >
+                              <Trash2 size={14} /> Eliminar
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     );
