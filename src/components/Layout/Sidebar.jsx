@@ -10,7 +10,6 @@ import {
   Gift, 
   AlertTriangle,
   Users,
-  Settings,
   LogOut
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
@@ -57,10 +56,6 @@ export const Sidebar = () => {
       </nav>
 
       <div className="mt-auto px-2 space-y-1 pt-4 border-t border-outline-variant/30">
-        <Link to="/ajustes" className="flex items-center gap-4 px-4 py-3 text-on-surface-variant hover:text-on-surface hover:bg-surface-bright/50 transition-all rounded-lg">
-          <Settings size={18} />
-          <span className="text-sm font-semibold">Ajustes</span>
-        </Link>
         <button onClick={logout} className="w-full flex items-center gap-4 px-4 py-3 text-status-error hover:bg-status-error/10 transition-all text-left rounded-lg cursor-pointer">
           <LogOut size={18} />
           <span className="text-sm font-semibold">Cerrar Sesión</span>
