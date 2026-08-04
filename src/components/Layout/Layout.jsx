@@ -12,11 +12,11 @@ export const Layout = () => {
   }
 
   return (
-    <div className="flex min-h-screen bg-background text-text-main">
+    <div className="flex">
       <Sidebar />
-      <div className="flex-1 ml-[260px] flex flex-col">
+      <div className="ml-[260px] w-full min-h-screen flex flex-col">
         <Header />
-        <main className="p-8 flex-1 overflow-y-auto">
+        <main className="flex-1 p-8 overflow-y-auto">
           <div className="animate-fade-in">
             <Outlet />
           </div>

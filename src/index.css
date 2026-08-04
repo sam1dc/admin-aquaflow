@@ -75,6 +75,40 @@
   .glass {
     @apply bg-background-card/80 backdrop-blur-md border border-border;
   }
+  
+  .glass-panel {
+    @apply bg-background-card/80 backdrop-blur-[20px] border border-border;
+  }
+  
+  .glass-card {
+    @apply bg-background-card/60 backdrop-blur-[15px] border border-border transition-all duration-300;
+  }
+  
+  .glass-card:hover {
+    @apply border-primary shadow-[0_0_20px_rgba(52,152,219,0.1)] -translate-y-[2px];
+  }
+
+  .ambient-glow {
+    position: relative;
+  }
+  
+  .ambient-glow::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    background: rgba(52, 152, 219, 0.15);
+    filter: blur(15px);
+    z-index: -1;
+    border-radius: inherit;
+  }
+  
+  .hover-ambient-glow {
+    @apply transition-all duration-300;
+  }
+  
+  .hover-ambient-glow:hover {
+    @apply border-primary shadow-[0_0_20px_rgba(52,152,219,0.2)];
+  }
 }
 
 /* ─── Scrollbar ──────────────────────────────────────────────── */

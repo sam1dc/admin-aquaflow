@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Card } from '../components/ui/Card';
-import { Droplets, Truck, CreditCard, AlertTriangle } from 'lucide-react';
+import { Droplets, Truck, CreditCard, AlertTriangle, TrendingUp, TrendingDown, Clock, AlertCircle } from 'lucide-react';
 import api from '../api/client';
 
 export const Dashboard = () => {
@@ -9,6 +8,8 @@ export const Dashboard = () => {
     tarifasActivas: 0,
     promociones: 0,
   });
+
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -26,86 +27,146 @@ export const Dashboard = () => {
         });
       } catch (error) {
         console.error("Error al cargar stats", error);
+      } finally {
+        setLoading(false);
       }
     };
     fetchStats();
   }, []);
 
   return (
-    <div>
-      <h2 className="text-3xl font-bold mb-8 text-text-main tracking-tight">Dashboard General</h2>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <Card>
-          <div className="flex items-center gap-4">
-            <div className="p-4 rounded-2xl bg-primary/10 text-primary shadow-glow">
-              <Droplets size={28} />
-            </div>
-            <div>
-              <p className="text-sm text-text-muted font-medium">Tarifas Activas</p>
-              <p className="text-3xl font-bold text-text-main">{stats.tarifasActivas}</p>
-            </div>
-          </div>
-        </Card>
-        
-        <Card>
-          <div className="flex items-center gap-4">
-            <div className="p-4 rounded-2xl bg-status-warning/10 text-status-warning shadow-[0_0_15px_rgba(245,158,11,0.2)]">
-              <Truck size={28} />
-            </div>
-            <div>
-              <p className="text-sm text-text-muted font-medium">Cisterneros Pendientes</p>
-              <p className="text-3xl font-bold text-text-main">{stats.cisternerosPendientes}</p>
-            </div>
-          </div>
-        </Card>
-        
-        <Card>
-          <div className="flex items-center gap-4">
-            <div className="p-4 rounded-2xl bg-status-success/10 text-status-success shadow-[0_0_15px_rgba(16,185,129,0.2)]">
-              <CreditCard size={28} />
-            </div>
-            <div>
-              <p className="text-sm text-text-muted font-medium">Promociones Activas</p>
-              <p className="text-3xl font-bold text-text-main">{stats.promociones}</p>
-            </div>
-          </div>
-        </Card>
-        
-        <Card>
-          <div className="flex items-center gap-4">
-            <div className="p-4 rounded-2xl bg-status-error/10 text-status-error shadow-[0_0_15px_rgba(239,68,68,0.2)]">
-              <AlertTriangle size={28} />
-            </div>
-            <div>
-              <p className="text-sm text-text-muted font-medium">Alertas del Sistema</p>
-              <p className="text-3xl font-bold text-text-main">0</p>
-            </div>
-          </div>
-        </Card>
+    <div className="animate-fade-in">
+      {/* Page Header */}
+      <div className="mb-8">
+        <h2 className="text-3xl font-bold text-text-main tracking-tight">Overview General</h2>
+        <p className="text-text-muted mt-1">Métricas de operación en tiempo real.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card title="Últimas Actividades">
-          <div className="flex flex-col items-center justify-center p-12 text-text-muted border-2 border-dashed border-border rounded-xl bg-background/30">
-            No hay actividades recientes
-          </div>
-        </Card>
+      {/* Bento Grid Dashboard */}
+      <div className="grid grid-cols-12 gap-6">
         
-        <Card title="Cisterneros por Validar">
-          {stats.cisternerosPendientes > 0 ? (
-            <div className="flex flex-col gap-3">
-              <div className="p-4 bg-background border border-border rounded-xl flex justify-between items-center transition-colors hover:border-primary/40">
-                <span className="text-text-main font-medium">Tienes {stats.cisternerosPendientes} cisternero(s) esperando validación.</span>
-                <a href="/cisterneros" className="text-primary text-sm font-semibold hover:text-primary-dark transition-colors px-3 py-1.5 bg-primary/10 rounded-lg">Revisar</a>
+        {/* KPI 1: Tarifas Activas (Span 3) */}
+        <div className="col-span-12 md:col-span-6 lg:col-span-3 glass-panel rounded-xl p-4 flex flex-col hover-ambient-glow transition-all duration-300 relative overflow-hidden group">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-xl group-hover:bg-primary/10 transition-colors"></div>
+          <div className="flex justify-between items-start mb-4 border-b border-border pb-2">
+            <div className="flex items-center gap-2">
+              <Droplets className="text-primary text-xl" size={20} />
+              <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wider">Tarifas Activas</h3>
+            </div>
+            <span className="flex items-center text-[10px] text-primary bg-primary/10 px-2 py-0.5 rounded-full font-medium">
+              Activas
+            </span>
+          </div>
+          <div className="mt-auto">
+            <span className="text-4xl font-bold text-text-main">{stats.tarifasActivas}</span>
+            <div className="h-8 mt-2 w-full opacity-60 flex items-end gap-1">
+              {/* Subtle trend line representation */}
+              <div className="w-1/6 h-[30%] bg-border rounded-t-sm"></div>
+              <div className="w-1/6 h-[45%] bg-border rounded-t-sm"></div>
+              <div className="w-1/6 h-[20%] bg-border rounded-t-sm"></div>
+              <div className="w-1/6 h-[60%] bg-border rounded-t-sm"></div>
+              <div className="w-1/6 h-[80%] bg-primary rounded-t-sm ambient-glow"></div>
+              <div className="w-1/6 h-[100%] bg-primary rounded-t-sm ambient-glow"></div>
+            </div>
+          </div>
+        </div>
+
+        {/* KPI 2: Cisterneros Pendientes (Span 3) */}
+        <div className="col-span-12 md:col-span-6 lg:col-span-3 glass-panel rounded-xl p-4 flex flex-col hover-ambient-glow transition-all duration-300 relative overflow-hidden group">
+          <div className="flex justify-between items-start mb-4 border-b border-border pb-2">
+            <div className="flex items-center gap-2">
+              <Truck className="text-status-warning text-xl" size={20} />
+              <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wider">Cisterneros</h3>
+            </div>
+            {stats.cisternerosPendientes > 0 && <span className="w-2 h-2 rounded-full bg-status-warning animate-pulse"></span>}
+          </div>
+          <div className="mt-auto flex items-end justify-between">
+            <div>
+              <span className="text-4xl font-bold text-text-main">
+                {stats.cisternerosPendientes === 0 ? "0" : stats.cisternerosPendientes}
+              </span>
+              <span className="text-sm text-text-muted ml-1">por validar</span>
+            </div>
+            {stats.cisternerosPendientes > 0 && (
+              <div className="text-right">
+                <span className="block text-xl font-bold text-status-warning">{stats.cisternerosPendientes}</span>
+                <span className="text-xs text-text-muted">Pendientes</span>
               </div>
+            )}
+          </div>
+        </div>
+
+        {/* KPI 3: Promociones Activas (Span 3) */}
+        <div className="col-span-12 md:col-span-6 lg:col-span-3 glass-panel rounded-xl p-4 flex flex-col hover-ambient-glow transition-all duration-300">
+          <div className="flex justify-between items-start mb-4 border-b border-border pb-2">
+            <div className="flex items-center gap-2">
+              <CreditCard className="text-status-success text-xl" size={20} />
+              <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wider">Promociones</h3>
             </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center p-12 text-text-muted border-2 border-dashed border-border rounded-xl bg-background/30">
-              No hay cisterneros pendientes de validación
+          </div>
+          <div className="mt-auto">
+            <span className="text-4xl font-bold text-text-main">{stats.promociones}</span>
+            <p className="text-sm text-text-muted mt-1">Actualmente en sistema</p>
+          </div>
+        </div>
+
+        {/* KPI 4: Alertas/Incidencias (Span 3) */}
+        <div className="col-span-12 md:col-span-6 lg:col-span-3 glass-panel rounded-xl p-4 flex flex-col hover-ambient-glow transition-all duration-300 border-status-error/30 group">
+          <div className="absolute inset-0 bg-status-error/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+          <div className="flex justify-between items-start mb-4 border-b border-border pb-2 relative z-10">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="text-status-error text-xl" size={20} />
+              <h3 className="text-xs font-semibold text-status-error uppercase tracking-wider">Alertas Críticas</h3>
             </div>
-          )}
-        </Card>
+          </div>
+          <div className="mt-auto relative z-10 flex items-center justify-between">
+            <span className="text-4xl font-bold text-status-error">0</span>
+            <button className="text-xs px-3 py-1 rounded bg-status-error/10 text-status-error hover:bg-status-error/20 transition-colors border border-status-error/20">Revisar</button>
+          </div>
+        </div>
+
+        {/* Main Content Row 2 */}
+        
+        {/* Cisterneros por Validar List (Span 7) */}
+        <div className="col-span-12 lg:col-span-7 glass-panel rounded-xl flex flex-col hover-ambient-glow transition-all duration-300">
+          <div className="p-4 border-b border-border flex justify-between items-center bg-background/50 rounded-t-xl">
+            <h3 className="text-xl font-semibold text-text-main">Cisterneros por Validar</h3>
+            <a href="/cisterneros" className="text-primary text-sm hover:underline flex items-center">
+              Ver todos &rarr;
+            </a>
+          </div>
+          <div className="flex-1 p-0 overflow-hidden">
+            {stats.cisternerosPendientes > 0 ? (
+              <div className="p-8 text-center text-text-main">
+                <Truck size={48} className="mx-auto mb-4 text-primary opacity-50" />
+                <p className="font-medium text-lg">Tienes {stats.cisternerosPendientes} cisternero(s) esperando validación.</p>
+                <a href="/cisterneros" className="mt-4 inline-block bg-primary text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-primary-dark transition-colors ambient-glow">Revisar Solicitudes</a>
+              </div>
+            ) : (
+              <div className="p-12 text-center text-text-muted flex flex-col items-center justify-center">
+                <Truck size={48} className="mb-4 opacity-20" />
+                <p>No hay cisterneros pendientes de validación</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Última Actividad Timeline (Span 5) */}
+        <div className="col-span-12 lg:col-span-5 glass-panel rounded-xl flex flex-col p-6 hover-ambient-glow transition-all duration-300">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-xl font-semibold text-text-main">Última Actividad</h3>
+            <span className="text-text-muted hover:text-primary cursor-pointer transition-colors">
+              <Clock size={20} />
+            </span>
+          </div>
+          <div className="relative pl-6 border-l border-border/40 space-y-6 flex-1 flex flex-col justify-center">
+            {/* Actividad vacía por defecto basada en el componente anterior */}
+            <div className="text-center text-text-muted py-8">
+              No hay actividades recientes
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   );

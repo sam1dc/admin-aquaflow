@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
-import { Check, X, User, Truck } from 'lucide-react';
+import { Check, X, User, Truck, Phone, Mail, Calendar, FileText, Badge as BadgeIcon, AlertCircle } from 'lucide-react';
 import api from '../api/client';
 
 export const Cisterneros = () => {
@@ -49,78 +49,128 @@ export const Cisterneros = () => {
   if (loading) return <div className="p-8 text-center text-text-muted animate-pulse">Cargando cisterneros pendientes...</div>;
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-8">
+    <div className="animate-fade-in relative z-0">
+      {/* Page Header */}
+      <div className="flex justify-between items-end mb-8">
         <div>
-          <h2 className="text-3xl font-bold text-text-main tracking-tight">Cisterneros Pendientes</h2>
-          <p className="text-text-muted mt-2">Valide la documentación de los transportistas antes de permitirles operar (CRD-002).</p>
+          <h3 className="text-3xl font-bold text-text-main mb-2 tracking-tight">Solicitudes Pendientes</h3>
+          <p className="text-text-muted">Revisa y valida la documentación de los nuevos conductores y vehículos.</p>
         </div>
-        <Badge variant="warning">{cisterneros.length} Pendientes</Badge>
+        <div className="flex gap-2">
+          <Badge variant="warning">{cisterneros.length} Pendientes</Badge>
+        </div>
       </div>
 
+      {/* Bento Grid Layout for Pending Approvals */}
       {cisterneros.length === 0 ? (
-        <Card>
-          <div className="flex flex-col items-center justify-center p-16 text-text-muted">
-            <Truck size={56} className="mx-auto mb-4 opacity-30" />
-            <h3 className="text-lg font-semibold text-primary mb-1">Todo al día</h3>
-            <p>No hay cisterneros pendientes de validación en este momento.</p>
-          </div>
+        <Card className="flex flex-col items-center justify-center p-16 text-text-muted">
+          <Truck size={56} className="mx-auto mb-4 opacity-30 text-primary" />
+          <h3 className="text-lg font-semibold text-primary mb-1">Todo al día</h3>
+          <p>No hay cisterneros pendientes de validación en este momento.</p>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 gap-6">
+        <div className="grid grid-cols-12 gap-6 pb-8">
           {cisterneros.map((c) => (
-            <Card key={c.id_cisternero} className="flex flex-col md:flex-row justify-between gap-6">
-              <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <h4 className="flex items-center gap-2 text-primary font-semibold mb-3 border-b border-border pb-2">
-                    <User size={18} /> Datos Personales
-                  </h4>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <span className="text-text-muted">Nombre:</span> <span className="text-text-main">{c.usuario.nombre}</span>
-                    <span className="text-text-muted">Teléfono:</span> <span className="text-text-main">{c.usuario.telefono}</span>
-                    <span className="text-text-muted">Email:</span> <span className="text-text-main">{c.usuario.email}</span>
-                    <span className="text-text-muted">RIF:</span> <span className="text-text-main">{c.rif_personal}</span>
-                    <span className="text-text-muted">Licencia:</span> <span className="text-text-main">{c.licencia_conducir}</span>
+            <article key={c.id_cisternero} className="col-span-12 xl:col-span-6 glass-card p-0 overflow-hidden flex flex-col group">
+              <div className="p-6 flex flex-col md:flex-row gap-6 flex-grow">
+                {/* Profile Column */}
+                <div className="flex flex-col items-center gap-2 md:w-1/3 border-b md:border-b-0 md:border-r border-border pb-6 md:pb-0 md:pr-6">
+                  <div className="relative w-24 h-24 rounded-full p-1 border-2 border-primary/30 mb-2">
+                    <div className="w-full h-full rounded-full bg-background-card flex items-center justify-center text-primary">
+                      <User size={40} />
+                    </div>
+                  </div>
+                  <h4 className="text-xl text-text-main font-semibold text-center">{c.usuario.nombre}</h4>
+                  <span className="px-2 py-1 rounded bg-background border border-border text-text-muted text-xs font-semibold">
+                    ID: {c.id_cisternero}
+                  </span>
+                  <div className="w-full mt-4 space-y-3">
+                    <div className="flex items-center gap-2 text-text-muted">
+                      <Phone size={16} className="text-primary" />
+                      <span className="text-sm">{c.usuario.telefono}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-text-muted">
+                      <Mail size={16} className="text-primary" />
+                      <span className="text-sm truncate">{c.usuario.email}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-text-muted">
+                      <BadgeIcon size={16} className="text-primary" />
+                      <span className="text-sm truncate">RIF: {c.rif_personal}</span>
+                    </div>
                   </div>
                 </div>
-                
-                <div>
-                  <h4 className="flex items-center gap-2 text-primary font-semibold mb-3 border-b border-border pb-2">
-                    <Truck size={18} /> Vehículo
-                  </h4>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <span className="text-text-muted">Marca:</span> <span className="text-text-main">{c.vehiculo?.marca}</span>
-                    <span className="text-text-muted">Modelo:</span> <span className="text-text-main">{c.vehiculo?.modelo}</span>
-                    <span className="text-text-muted">Placa:</span> <span className="text-text-main">{c.vehiculo?.placa}</span>
-                    <span className="text-text-muted">Capacidad:</span> <span className="text-text-main">{c.vehiculo?.capacidad_tanque} L</span>
+
+                {/* Details Column */}
+                <div className="md:w-2/3 flex flex-col justify-between">
+                  {/* Vehicle Details */}
+                  <div>
+                    <h5 className="text-xs text-primary font-semibold tracking-widest uppercase mb-4 flex items-center gap-2">
+                      <Truck size={16} /> Detalles del Vehículo
+                    </h5>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-background p-3 rounded-lg border border-border/50">
+                        <p className="text-xs font-medium text-text-muted mb-1">Marca / Modelo</p>
+                        <p className="text-sm text-text-main">{c.vehiculo?.marca} {c.vehiculo?.modelo}</p>
+                      </div>
+                      <div className="bg-background p-3 rounded-lg border border-border/50">
+                        <p className="text-xs font-medium text-text-muted mb-1">Placas</p>
+                        <p className="text-sm text-text-main font-mono">{c.vehiculo?.placa}</p>
+                      </div>
+                      <div className="bg-background p-3 rounded-lg border border-border/50">
+                        <p className="text-xs font-medium text-text-muted mb-1">Capacidad</p>
+                        <p className="text-sm text-primary font-medium">{c.vehiculo?.capacidad_tanque} Lts</p>
+                      </div>
+                      <div className="bg-background p-3 rounded-lg border border-border/50 flex flex-col justify-center items-center">
+                        {c.vehiculo?.fotos_url ? (
+                           <a href={c.vehiculo.fotos_url} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline flex flex-col items-center gap-1">
+                             <FileText size={20} />
+                             Ver Foto
+                           </a>
+                        ) : (
+                          <span className="text-xs text-text-muted text-center">Sin foto</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  {c.vehiculo?.fotos_url && (
-                    <a href={c.vehiculo.fotos_url} target="_blank" rel="noreferrer" className="text-xs text-primary mt-3 inline-block hover:text-primary-dark transition-colors">
-                      Ver foto del vehículo →
-                    </a>
-                  )}
+
+                  {/* Documents Preview */}
+                  <div className="mt-6">
+                    <h5 className="text-xs text-primary font-semibold tracking-widest uppercase mb-3 flex items-center gap-2">
+                      <FileText size={16} /> Documentación Adjunta
+                    </h5>
+                    <div className="flex gap-3">
+                       {/* This is a placeholder since the API only returns licencia_conducir as text, we can show it as a badge */}
+                      <div className="flex-1 flex flex-col items-center justify-center gap-1 p-3 rounded-lg border border-status-success/30 bg-status-success/10 group relative">
+                        <BadgeIcon size={24} className="text-status-success group-hover:scale-110 transition-transform" />
+                        <span className="text-xs font-medium text-text-main mt-1 text-center">Licencia</span>
+                        <span className="text-[10px] text-text-muted truncate w-full text-center" title={c.licencia_conducir}>{c.licencia_conducir}</span>
+                        <div className="absolute top-1 right-1"><Check size={12} className="text-status-success" /></div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex md:flex-col justify-end gap-3 md:min-w-[150px] border-t md:border-t-0 md:border-l border-border pt-4 md:pt-0 md:pl-6">
-                <Button 
-                  variant="success" 
-                  className="w-full justify-center"
-                  disabled={actionLoading === c.id_cisternero}
-                  onClick={() => handleValidation(c.id_cisternero, true)}
-                >
-                  <Check size={18} className="mr-2" /> Aprobar
-                </Button>
-                <Button 
-                  variant="danger" 
-                  className="w-full justify-center"
+              {/* Actions Footer */}
+              <div className="bg-background-hover/30 p-4 border-t border-border flex justify-end gap-4 mt-auto">
+                <button 
                   disabled={actionLoading === c.id_cisternero}
                   onClick={() => handleValidation(c.id_cisternero, false)}
+                  className="px-6 py-2 rounded-lg border border-status-error text-status-error text-sm font-semibold hover:bg-status-error/10 transition-colors flex items-center gap-2 disabled:opacity-50"
                 >
-                  <X size={18} className="mr-2" /> Rechazar
-                </Button>
+                  <X size={16} />
+                  Rechazar
+                </button>
+                <button 
+                  disabled={actionLoading === c.id_cisternero}
+                  onClick={() => handleValidation(c.id_cisternero, true)}
+                  className="px-6 py-2 rounded-lg bg-status-success text-white text-sm font-semibold hover:bg-status-success/90 transition-colors flex items-center gap-2 shadow-[0_0_15px_rgba(16,185,129,0.3)] disabled:opacity-50 ambient-glow"
+                >
+                  <Check size={16} />
+                  Aprobar y Activar
+                </button>
               </div>
-            </Card>
+            </article>
           ))}
         </div>
       )}

@@ -21,19 +21,19 @@ export const Modal = ({ isOpen, onClose, title, children }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-fade-in">
       <div 
-        className="glass rounded-2xl w-full max-w-md p-6 shadow-2xl relative z-10 border border-border bg-background-card"
+        className="glass-card rounded-2xl w-full max-w-md shadow-2xl relative z-10 flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between pb-4 mb-4 border-b border-border">
-          <h3 className="text-xl font-bold text-text-main tracking-tight">{title}</h3>
+        <div className="p-6 border-b border-outline-variant/30 flex justify-between items-center bg-gradient-to-r from-primary/10 to-transparent rounded-t-2xl">
+          <h3 className="font-bold text-lg text-text-main tracking-tight">{title}</h3>
           <button 
             onClick={onClose}
-            className="text-text-muted hover:text-text-main transition-colors p-1.5 rounded-xl hover:bg-white/5 cursor-pointer"
+            className="text-text-muted hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/5 cursor-pointer"
           >
             <X size={20} />
           </button>
         </div>
-        <div>
+        <div className="p-6">
           {children}
         </div>
       </div>

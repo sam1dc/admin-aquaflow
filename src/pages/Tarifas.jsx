@@ -3,7 +3,7 @@ import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
-import { Pencil, Plus, Tag, RefreshCw, DollarSign, Coins, Trash2 } from 'lucide-react';
+import { Pencil, Plus, Tag, RefreshCw, DollarSign, Coins, Trash2, Droplet, List, Download } from 'lucide-react';
 import api from '../api/client';
 import { getBcvRate } from '../api/bcv';
 
@@ -106,68 +106,87 @@ export const Tarifas = () => {
     ? (Number(form.precio_base) * bcvData.rate).toFixed(2) 
     : '0.00';
 
-  return (
-    <div className="flex flex-col gap-6">
-      {/* Header + Tasa BCV Widget */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h2 className="text-3xl font-bold text-text-main tracking-tight">Gestión de Tarifas</h2>
-          <p className="text-text-muted text-sm mt-1">Configura los precios del agua en dólares (USD) y convierte automáticamente a Bolívares (BCV).</p>
-        </div>
+  const getVolumeIcon = (volumen) => {
+    // Escala arbitraria de colores basados en el volumen
+    if (volumen <= 1000) return 'bg-primary/10 text-primary';
+    if (volumen <= 5000) return 'bg-status-location/10 text-status-location';
+    return 'bg-status-success/10 text-status-success';
+  };
 
-        <div className="flex items-center gap-3">
-          {/* Card indicador de Tasa BCV */}
-          <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-background-card border border-border shadow-md">
-            <div className="p-2 rounded-lg bg-status-success/10 text-status-success">
-              <Coins size={20} />
-            </div>
+  return (
+    <div className="animate-fade-in flex flex-col gap-8 pb-8">
+      {/* Top Section: BCV & Actions */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        {/* BCV Live Rate Widget */}
+        <div className="lg:col-span-4 glass-card rounded-xl p-6 flex flex-col justify-between relative overflow-hidden group hover:border-primary/50 transition-colors">
+          <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary/10 rounded-full blur-2xl group-hover:bg-primary/20 transition-all"></div>
+          
+          <div className="flex justify-between items-start mb-4 relative z-10">
             <div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs text-text-muted font-medium">Tasa BCV Oficial:</span>
-                <span className="text-xs font-bold text-status-success">
-                  {bcvLoading ? 'Cargando...' : `Bs. ${bcvData.rate.toFixed(2)} / USD`}
-                </span>
-              </div>
-              <span className="text-[10px] text-text-muted block">
-                {bcvData.fuente} • Actualizado en vivo
-              </span>
+              <h3 className="text-xl font-bold text-text-main">Tasa BCV Oficial</h3>
+              <p className="text-xs text-text-muted mt-1">Fuente: {bcvData.fuente || 'DolarApi'}</p>
             </div>
             <button 
-              onClick={fetchBcv} 
-              title="Recargar Tasa BCV"
-              className="text-text-muted hover:text-primary transition-colors p-1.5 rounded-lg hover:bg-white/5 cursor-pointer ml-1"
+              onClick={fetchBcv}
+              className="text-primary hover:text-primary-dark transition-colors p-2 rounded-full hover:bg-primary/10"
+              title="Recargar"
             >
-              <RefreshCw size={14} className={bcvLoading ? 'animate-spin' : ''} />
+              <RefreshCw size={20} className={bcvLoading ? 'animate-spin' : ''} />
             </button>
           </div>
+          
+          <div className="flex items-end gap-2 relative z-10">
+            <span className="text-4xl font-bold text-primary tracking-tight">
+              {bcvLoading ? '---' : bcvData.rate.toFixed(2)}
+            </span>
+            <span className="text-lg text-text-muted mb-1 font-medium">Bs / USD</span>
+          </div>
+        </div>
 
-          <Button onClick={handleOpenCreate} className="flex items-center gap-2">
+        {/* Header & Nueva Tarifa Button */}
+        <div className="lg:col-span-8 flex flex-col sm:flex-row justify-between sm:items-end gap-4 pb-2">
+          <div>
+            <h2 className="text-3xl font-bold text-text-main tracking-tight mb-2">Gestión de Tarifas</h2>
+            <p className="text-text-muted">Configura los precios del agua en dólares (USD) y convierte automáticamente a Bolívares.</p>
+          </div>
+          <button 
+            onClick={handleOpenCreate} 
+            className="bg-primary text-white px-6 py-2.5 rounded-xl font-semibold hover:bg-primary-dark hover:shadow-[0_0_15px_rgba(52,152,219,0.3)] transition-all flex items-center justify-center gap-2 ambient-glow whitespace-nowrap"
+          >
             <Plus size={18} /> Nueva Tarifa
-          </Button>
+          </button>
         </div>
       </div>
 
-      <Card>
+      {/* Rates Table */}
+      <div className="glass-card rounded-xl overflow-hidden flex flex-col flex-1">
+        <div className="p-6 border-b border-border/50 flex justify-between items-center bg-background/30 rounded-t-xl">
+          <h2 className="text-xl font-bold text-text-main flex items-center gap-2">
+            <List className="text-primary" size={24} /> Gestión de Tarifas por Volumen
+          </h2>
+        </div>
+
         {loading ? (
-          <div className="text-center p-8 text-text-muted animate-pulse">Cargando tarifas...</div>
+          <div className="text-center p-16 text-text-muted animate-pulse">Cargando tarifas...</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-border">
-                  <th className="py-3.5 px-4 text-sm font-medium text-text-muted">Volumen (Litros)</th>
-                  <th className="py-3.5 px-4 text-sm font-medium text-text-muted">Precio ($ USD)</th>
-                  <th className="py-3.5 px-4 text-sm font-medium text-text-muted">Precio (Bs BCV)</th>
-                  <th className="py-3.5 px-4 text-sm font-medium text-text-muted">Estado</th>
-                  <th className="py-3.5 px-4 text-sm font-medium text-text-muted text-right">Acciones</th>
+                <tr className="border-b border-border/50 bg-background/20 text-sm font-semibold text-text-muted">
+                  <th className="p-4 whitespace-nowrap">Volumen</th>
+                  <th className="p-4 whitespace-nowrap">Precio Base (USD)</th>
+                  <th className="p-4 whitespace-nowrap">Precio Calculado (Bs)</th>
+                  <th className="p-4 whitespace-nowrap">Estado</th>
+                  <th className="p-4 text-right whitespace-nowrap">Acciones</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="text-sm">
                 {tarifas.length === 0 ? (
                   <tr>
-                    <td colSpan="5" className="text-center p-8 text-text-muted">
-                      <Tag size={40} className="mx-auto mb-2 opacity-30" />
-                      No hay tarifas registradas
+                    <td colSpan="5" className="text-center p-16 text-text-muted">
+                      <Tag size={48} className="mx-auto mb-4 opacity-30 text-primary" />
+                      No hay tarifas registradas. Crea una para comenzar.
                     </td>
                   </tr>
                 ) : (
@@ -177,39 +196,52 @@ export const Tarifas = () => {
                       minimumFractionDigits: 2, 
                       maximumFractionDigits: 2 
                     });
+                    const iconColor = getVolumeIcon(t.volumen_litros);
 
                     return (
-                      <tr key={t.id_tarifa} className="border-b border-border hover:bg-white/[0.02] transition-colors">
-                        <td className="py-3.5 px-4 font-semibold text-text-main">
-                          {t.volumen_litros.toLocaleString()} L
+                      <tr key={t.id_tarifa} className="border-b border-border/30 hover:bg-white/5 transition-colors group">
+                        <td className="p-4 flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${iconColor}`}>
+                            <Droplet size={16} />
+                          </div>
+                          <span className="text-text-main font-semibold text-base">{t.volumen_litros.toLocaleString()} Lts</span>
                         </td>
-                        <td className="py-3.5 px-4 text-primary font-bold">
+                        <td className="p-4 text-text-main font-medium">
                           $ {precioUSD.toFixed(2)}
                         </td>
-                        <td className="py-3.5 px-4 text-status-success font-semibold">
-                          Bs. {precioBs}
+                        <td className="p-4">
+                          <span className="text-text-main font-semibold">Bs {precioBs}</span>
+                          <span className="text-text-muted text-[11px] ml-1.5">(x{bcvData.rate.toFixed(2)})</span>
                         </td>
-                        <td className="py-3.5 px-4">
-                          <Badge variant={t.activo ? 'success' : 'error'}>{t.activo ? 'Activa' : 'Inactiva'}</Badge>
+                        <td className="p-4">
+                          {t.activo ? (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-status-success/10 text-status-success font-semibold text-xs border border-status-success/20">
+                              <span className="w-1.5 h-1.5 rounded-full bg-status-success animate-pulse"></span>
+                              Activo
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-background text-text-muted font-semibold text-xs border border-border">
+                              <span className="w-1.5 h-1.5 rounded-full bg-text-muted"></span>
+                              Inactivo
+                            </span>
+                          )}
                         </td>
-                        <td className="py-3.5 px-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
+                        <td className="p-4 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <button 
                               onClick={() => handleOpenEdit(t)}
-                              className="inline-flex items-center gap-1.5"
+                              className="p-2 text-text-muted hover:text-primary transition-colors" 
+                              title="Editar"
                             >
-                              <Pencil size={14} /> Editar
-                            </Button>
-                            <Button 
-                              variant="danger" 
-                              size="sm" 
+                              <Pencil size={18} />
+                            </button>
+                            <button 
                               onClick={() => handleDelete(t.id_tarifa)}
-                              className="inline-flex items-center gap-1.5"
+                              className="p-2 text-text-muted hover:text-status-error transition-colors" 
+                              title="Eliminar"
                             >
-                              <Trash2 size={14} /> Eliminar
-                            </Button>
+                              <Trash2 size={18} />
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -220,54 +252,66 @@ export const Tarifas = () => {
             </table>
           </div>
         )}
-      </Card>
+      </div>
 
-      {/* Modal para Crear / Editar Tarifa */}
+      {/* Create/Edit Modal (Inline redesign) */}
       <Modal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)}
-        title={editingTarifa ? 'Editar Tarifa' : 'Crear Nueva Tarifa'}
+        title={editingTarifa ? 'Configurar Tarifa' : 'Nueva Tarifa'}
       >
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-2 text-text-secondary">Volumen en Litros</label>
-            <input 
-              type="number" 
-              value={form.volumen_litros} 
-              onChange={e => setForm({ ...form, volumen_litros: e.target.value })}
-              placeholder="Ej. 10000"
-              required
-            />
+        <form onSubmit={handleSubmit} className="flex flex-col gap-6 mt-4">
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-text-muted block">Volumen (Litros)</label>
+            <div className="relative">
+              <Droplet size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" />
+              <input 
+                type="number" 
+                value={form.volumen_litros} 
+                onChange={e => setForm({ ...form, volumen_litros: e.target.value })}
+                placeholder="Ej. 1000"
+                className="w-full bg-background border border-border rounded-xl py-3 pl-12 pr-4 text-text-main focus:border-primary/50 focus:ring-1 focus:ring-primary/50 outline-none"
+                required
+              />
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-2 text-text-secondary flex items-center justify-between">
-              <span>Precio Base en Dólares ($ USD)</span>
-              <span className="text-xs text-primary flex items-center gap-1">
-                <DollarSign size={12} /> Moneda Principal
-              </span>
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-text-muted flex justify-between">
+              <span>Precio Base (USD)</span>
             </label>
-            <input 
-              type="number" 
-              step="0.01"
-              value={form.precio_base} 
-              onChange={e => setForm({ ...form, precio_base: e.target.value })}
-              placeholder="Ej. 50.00"
-              required
-            />
+            <div className="relative">
+              <DollarSign size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" />
+              <input 
+                type="number" 
+                step="0.01"
+                value={form.precio_base} 
+                onChange={e => setForm({ ...form, precio_base: e.target.value })}
+                placeholder="0.00"
+                className="w-full bg-background border border-border rounded-xl py-3 pl-12 pr-4 text-text-main focus:border-primary/50 focus:ring-1 focus:ring-primary/50 outline-none font-mono"
+                required
+              />
+            </div>
           </div>
 
           {/* Vista previa de conversión en Bolívares */}
-          <div className="p-3 bg-background border border-border rounded-xl flex items-center justify-between">
-            <span className="text-xs text-text-muted">Equivalente en Bolívares (BCV):</span>
-            <span className="text-sm font-bold text-status-success">
-              Bs. {Number(calculatedBs).toLocaleString('es-VE', { minimumFractionDigits: 2 })}
-            </span>
+          <div className="bg-background-card/50 rounded-xl p-4 border border-border/50 relative overflow-hidden">
+            <div className="absolute -right-4 -bottom-4 w-16 h-16 bg-primary/5 rounded-full blur-xl"></div>
+            <label className="text-xs text-text-muted font-bold uppercase tracking-wider block">Equivalente Estimado (Bs)</label>
+            <div className="flex items-end gap-2 mt-2">
+              <span className="text-2xl font-bold text-primary">
+                {Number(calculatedBs).toLocaleString('es-VE', { minimumFractionDigits: 2 })}
+              </span>
+              <span className="text-sm text-text-muted mb-0.5 font-medium">VES</span>
+            </div>
+            <p className="text-xs text-text-muted/70 mt-2 flex items-center gap-1">
+              Basado en tasa BCV actual ({bcvData.rate.toFixed(2)})
+            </p>
           </div>
           
           {editingTarifa && (
-            <div className="flex items-center justify-between p-3 bg-background border border-border rounded-xl">
-              <span className="text-sm font-medium text-text-secondary">Estado de la tarifa</span>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-semibold text-text-muted">Estado Activo</span>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input 
                   type="checkbox" 
@@ -275,18 +319,26 @@ export const Tarifas = () => {
                   onChange={e => setForm({ ...form, activo: e.target.checked })} 
                   className="sr-only peer" 
                 />
-                <div className="w-11 h-6 bg-background-hover peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                <div className="w-11 h-6 bg-background border border-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
               </label>
             </div>
           )}
 
-          <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-border">
-            <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
+          <div className="flex justify-end gap-3 pt-4 border-t border-border/50">
+            <button 
+              type="button" 
+              onClick={() => setIsModalOpen(false)}
+              className="px-6 py-2.5 rounded-xl border border-border bg-background text-text-main font-semibold hover:bg-background-card transition-colors"
+            >
               Cancelar
-            </Button>
-            <Button type="submit" disabled={submitting}>
-              {submitting ? 'Guardando...' : (editingTarifa ? 'Guardar Cambios' : 'Crear Tarifa')}
-            </Button>
+            </button>
+            <button 
+              type="submit" 
+              disabled={submitting}
+              className="px-6 py-2.5 rounded-xl bg-primary text-white font-semibold hover:shadow-glow hover:bg-primary-dark transition-all"
+            >
+              {submitting ? 'Guardando...' : 'Guardar Tarifa'}
+            </button>
           </div>
         </form>
       </Modal>

@@ -17,16 +17,6 @@ export const Header = () => {
             <span className="text-xs text-text-muted">Administrador Principal</span>
           </div>
         </div>
-        
-        <div className="w-px h-6 bg-border"></div>
-        
-        <button 
-          onClick={logout}
-          className="flex items-center gap-2 text-sm text-text-secondary hover:text-status-error transition-colors duration-200"
-        >
-          <LogOut size={18} />
-          <span className="font-medium">Salir</span>
-        </button>
       </div>
     </header>
   );
