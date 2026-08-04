@@ -3,9 +3,11 @@ import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
-import { Pencil, Plus, Tag, RefreshCw, DollarSign, Coins, Trash2, Droplet, List, Download } from 'lucide-react';
+import { Pencil, Plus, Tag, RefreshCw, DollarSign, Coins, Trash2, Droplet, List, Download, ChevronLeft, ChevronRight } from 'lucide-react';
 import api from '../api/client';
 import { getBcvRate } from '../api/bcv';
+
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25];
 
 export const Tarifas = () => {
   const [tarifas, setTarifas] = useState([]);
@@ -27,11 +29,22 @@ export const Tarifas = () => {
     setBcvLoading(false);
   };
 
-  const fetchTarifas = async () => {
+  const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 10, totalPages: 1 });
+  const [pageSize, setPageSize] = useState(10);
+
+  const fetchTarifas = async (page = 1, size = pageSize) => {
     try {
       setLoading(true);
-      const res = await api.get('/admin/tarifas');
+      const params = new URLSearchParams();
+      params.append('page', String(page));
+      params.append('limit', String(size));
+      const res = await api.get(`/admin/tarifas?${params.toString()}`);
       setTarifas(res.data.data || []);
+      if (res.data.pagination) {
+        setPagination(res.data.pagination);
+      } else {
+        setPagination({ total: res.data.data?.length || 0, page: 1, limit: size, totalPages: 1 });
+      }
     } catch (error) {
       console.error("Error fetching tarifas:", error);
     } finally {
@@ -40,9 +53,23 @@ export const Tarifas = () => {
   };
 
   useEffect(() => {
-    fetchTarifas();
+    fetchTarifas(1, pageSize);
     fetchBcv();
   }, []);
+
+  const handlePrevPage = () => {
+    if (pagination.page > 1) fetchTarifas(pagination.page - 1, pageSize);
+  };
+
+  const handleNextPage = () => {
+    if (pagination.page < pagination.totalPages) fetchTarifas(pagination.page + 1, pageSize);
+  };
+
+  const handlePageSizeChange = (e) => {
+    const newSize = Number(e.target.value);
+    setPageSize(newSize);
+    fetchTarifas(1, newSize);
+  };
 
   const handleOpenCreate = () => {
     setEditingTarifa(null);
@@ -250,6 +277,45 @@ export const Tarifas = () => {
                 )}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* Paginación */}
+        {!loading && tarifas.length > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 mt-2">
+            <div className="flex items-center gap-3">
+              <label className="text-sm text-text-muted">Mostrar:</label>
+              <select
+                value={pageSize}
+                onChange={handlePageSizeChange}
+                className="px-3 py-2 rounded-xl glass-panel text-text-main text-sm font-semibold focus:border-primary/50 outline-none"
+              >
+                {PAGE_SIZE_OPTIONS.map(opt => (
+                  <option key={opt} value={opt} className="bg-background-card">{opt} por pág.</option>
+                ))}
+              </select>
+            </div>
+            {pagination.totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handlePrevPage}
+                  disabled={pagination.page <= 1}
+                  className="p-2 rounded-xl glass-panel text-text-muted hover:text-text-main disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                <span className="px-4 py-2 rounded-xl bg-primary/10 text-primary font-semibold text-sm">
+                  Pág. {pagination.page} / {pagination.totalPages}
+                </span>
+                <button
+                  onClick={handleNextPage}
+                  disabled={pagination.page >= pagination.totalPages}
+                  className="p-2 rounded-xl glass-panel text-text-muted hover:text-text-main disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                >
+                  <ChevronRight size={20} />
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
