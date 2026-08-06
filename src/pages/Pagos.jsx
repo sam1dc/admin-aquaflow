@@ -3,6 +3,7 @@ import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { CreditCard, Check, X, Eye, Smartphone, DollarSign, Wallet, FileText, ChevronRight, ChevronLeft } from 'lucide-react';
+import toast from 'react-hot-toast';
 import api from '../api/client';
 
 const PAGE_SIZE_OPTIONS = [10, 15, 20, 25];
@@ -80,10 +81,10 @@ export const Pagos = () => {
         if (motivo_rechazo === null) return;
       }
       const res = await api.patch(`/payments/${id_pago}/verify`, { verificado, motivo_rechazo });
-      alert(res.data?.message || 'Pago procesado exitosamente');
+      toast.success(res.data?.message || 'Pago procesado exitosamente');
       fetchPagos();
     } catch (error) {
-      alert(`Error: ${error.response?.data?.error || error.message}`);
+      toast.error(`Error: ${error.response?.data?.error || error.message}`);
     } finally {
       setActionLoading(null);
     }

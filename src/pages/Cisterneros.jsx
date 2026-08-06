@@ -3,6 +3,7 @@ import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Check, X, User, Truck, Phone, Mail, Calendar, FileText, Badge as BadgeIcon, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import toast from 'react-hot-toast';
 import api from '../api/client';
 
 const PAGE_SIZE_OPTIONS = [10, 15, 20, 25];
@@ -65,9 +66,9 @@ export const Cisterneros = () => {
 
       await api.patch(`/admin/cisterneros/${id}/validar`, { aprobado, motivo_rechazo });
       setCisterneros(prev => prev.filter(c => c.id_cisternero !== id));
-      
+      toast.success(aprobado ? 'Cisternero aprobado' : 'Cisternero rechazado');
     } catch (error) {
-      alert(`Error: ${error.response?.data?.error || error.message}`);
+      toast.error(`Error: ${error.response?.data?.error || error.message}`);
     } finally {
       setActionLoading(null);
     }

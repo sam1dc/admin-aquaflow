@@ -3,6 +3,7 @@ import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { AlertTriangle, Check, Eye, User, Package, ExternalLink, ShieldAlert, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
+import toast from 'react-hot-toast';
 const PAGE_SIZE_OPTIONS = [10, 15, 20, 25];
 import api from '../api/client';
 
@@ -101,10 +102,10 @@ export const Incidencias = () => {
     try {
       setActionLoading(id);
       const res = await api.patch(`/admin/incidencias/${id}/estado`, { estatus_gestion });
-      alert(res.data?.message || 'Incidencia actualizada');
+      toast.success(res.data?.message || 'Incidencia actualizada');
       fetchIncidencias();
     } catch (error) {
-      alert(`Error: ${error.response?.data?.error || error.message}`);
+      toast.error(`Error: ${error.response?.data?.error || error.message}`);
     } finally {
       setActionLoading(null);
     }

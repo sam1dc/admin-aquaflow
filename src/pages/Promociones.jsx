@@ -4,6 +4,8 @@ import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { Gift, Plus, Pencil, Trash2, Percent, Banknote, Crown, Ticket, Users, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { ConfirmModal } from '../components/ui/ConfirmModal';
 import api from '../api/client';
 
 const PAGE_SIZE_OPTIONS = [10, 15, 20, 25];
@@ -25,6 +27,7 @@ export const Promociones = () => {
   const [submitting, setSubmitting] = useState(false);
   const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 10, totalPages: 1 });
   const [pageSize, setPageSize] = useState(10);
+  const [confirmConfig, setConfirmConfig] = useState({ isOpen: false, id: null });
 
   const fetchPromos = async (page = 1, size = pageSize) => {
     try {
@@ -89,14 +92,15 @@ export const Promociones = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id_promocion) => {
-    if (!window.confirm('¿Estás seguro de que deseas eliminar esta promoción?')) return;
+  const handleDelete = async () => {
+    const id_promocion = confirmConfig.id;
+    if (!id_promocion) return;
     try {
       const res = await api.delete(`/admin/promociones/${id_promocion}`);
-      alert(res.data?.message || 'Promoción eliminada');
+      toast.success(res.data?.message || 'Promoción eliminada');
       fetchPromos();
     } catch (error) {
-      alert(`Error: ${error.response?.data?.error || error.message}`);
+      toast.error(`Error: ${error.response?.data?.error || error.message}`);
     }
   };
 
@@ -123,8 +127,9 @@ export const Promociones = () => {
       }
       setIsModalOpen(false);
       fetchPromos();
+      toast.success('Promoción guardada exitosamente');
     } catch (error) {
-      alert(`Error al guardar: ${error.response?.data?.error || error.message}`);
+      toast.error(`Error al guardar: ${error.response?.data?.error || error.message}`);
     } finally {
       setSubmitting(false);
     }
@@ -280,7 +285,7 @@ export const Promociones = () => {
                           <button onClick={() => handleOpenEdit(p)} className="p-2 text-text-muted hover:text-primary transition-colors" title="Editar">
                             <Pencil size={16} />
                           </button>
-                          <button onClick={() => handleDelete(p.id_promocion)} className="p-2 text-text-muted hover:text-status-error transition-colors" title="Eliminar">
+                          <button onClick={() => setConfirmConfig({ isOpen: true, id: p.id_promocion })} className="p-2 text-text-muted hover:text-status-error transition-colors" title="Eliminar">
                             <Trash2 size={16} />
                           </button>
                         </div>
@@ -437,6 +442,15 @@ export const Promociones = () => {
           </div>
         </form>
       </Modal>
+
+      <ConfirmModal 
+        isOpen={confirmConfig.isOpen}
+        onClose={() => setConfirmConfig({ isOpen: false, id: null })}
+        onConfirm={handleDelete}
+        title="Eliminar Promoción"
+        message="¿Estás seguro de que deseas eliminar esta promoción? Esta acción no se puede deshacer."
+        variant="danger"
+      />
     </div>
   );
 };

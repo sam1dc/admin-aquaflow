@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 export const Modal = ({ isOpen, onClose, title, children }) => {
@@ -18,8 +19,8 @@ export const Modal = ({ isOpen, onClose, title, children }) => {
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-fade-in">
+  const modalContent = (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-fade-in">
       <div 
         className="glass-card rounded-2xl w-full max-w-md shadow-2xl relative z-10 flex flex-col max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
@@ -39,4 +40,6 @@ export const Modal = ({ isOpen, onClose, title, children }) => {
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 };

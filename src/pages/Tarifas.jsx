@@ -4,6 +4,8 @@ import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { Pencil, Plus, Tag, RefreshCw, DollarSign, Coins, Trash2, Droplet, List, Download, ChevronLeft, ChevronRight } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { ConfirmModal } from '../components/ui/ConfirmModal';
 import api from '../api/client';
 import { getBcvRate } from '../api/bcv';
 
@@ -18,6 +20,7 @@ export const Tarifas = () => {
   const [editingTarifa, setEditingTarifa] = useState(null);
   const [form, setForm] = useState({ volumen_litros: '', precio_base: '', activo: true });
   const [submitting, setSubmitting] = useState(false);
+  const [confirmConfig, setConfirmConfig] = useState({ isOpen: false, id: null });
 
   const user = JSON.parse(localStorage.getItem('aquaflow_admin_user') || '{}');
   const id_admin = user.administrador?.id_admin || user.id_usuario;
@@ -87,17 +90,16 @@ export const Tarifas = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id_tarifa) => {
-    if (!window.confirm('¿Estás seguro de que deseas eliminar esta tarifa?')) {
-      return;
-    }
+  const handleDelete = async () => {
+    const id_tarifa = confirmConfig.id;
+    if (!id_tarifa) return;
 
     try {
       const res = await api.delete(`/admin/tarifas/${id_tarifa}`);
-      alert(res.data?.message || 'Tarifa eliminada exitosamente');
+      toast.success(res.data?.message || 'Tarifa eliminada exitosamente');
       fetchTarifas();
     } catch (error) {
-      alert(`Error al eliminar tarifa: ${error.response?.data?.error || error.message}`);
+      toast.error(`Error al eliminar tarifa: ${error.response?.data?.error || error.message}`);
     }
   };
 
@@ -122,8 +124,9 @@ export const Tarifas = () => {
       }
       setIsModalOpen(false);
       fetchTarifas();
+      toast.success('Tarifa guardada exitosamente');
     } catch (error) {
-      alert(`Error al guardar tarifa: ${error.response?.data?.error || error.message}`);
+      toast.error(`Error al guardar tarifa: ${error.response?.data?.error || error.message}`);
     } finally {
       setSubmitting(false);
     }
@@ -263,7 +266,7 @@ export const Tarifas = () => {
                               <Pencil size={18} />
                             </button>
                             <button 
-                              onClick={() => handleDelete(t.id_tarifa)}
+                              onClick={() => setConfirmConfig({ isOpen: true, id: t.id_tarifa })}
                               className="p-2 text-text-muted hover:text-status-error transition-colors" 
                               title="Eliminar"
                             >
@@ -408,6 +411,15 @@ export const Tarifas = () => {
           </div>
         </form>
       </Modal>
+
+      <ConfirmModal 
+        isOpen={confirmConfig.isOpen}
+        onClose={() => setConfirmConfig({ isOpen: false, id: null })}
+        onConfirm={handleDelete}
+        title="Eliminar Tarifa"
+        message="¿Estás seguro de que deseas eliminar esta tarifa? Esta acción no se puede deshacer."
+        variant="danger"
+      />
     </div>
   );
 };

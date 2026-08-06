@@ -3,6 +3,8 @@ import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { Users as UsersIcon, User, Truck, Shield, CheckCircle2, MoreVertical, Star, Ban, Car, CreditCard, ExternalLink, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { ConfirmModal } from '../components/ui/ConfirmModal';
 
 const PAGE_SIZE_OPTIONS = [10, 15, 20, 25];
 import api from '../api/client';
@@ -27,6 +29,7 @@ export const Usuarios = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 10, totalPages: 1 });
   const [pageSize, setPageSize] = useState(10);
+  const [confirmConfig, setConfirmConfig] = useState({ isOpen: false, id: null });
 
   const fetchUsuarios = async (page = 1, size = pageSize, currentFilter = filter) => {
     try {
@@ -79,16 +82,17 @@ export const Usuarios = () => {
     return 'desconocido';
   };
 
-  const handleHabilitar = async (id_usuario) => {
-    if (!window.confirm('¿Estás seguro de que deseas habilitar esta cuenta?')) return;
+  const handleHabilitar = async () => {
+    const id_usuario = confirmConfig.id;
+    if (!id_usuario) return;
     try {
       setActionLoading(id_usuario);
       const res = await api.patch(`/admin/usuarios/${id_usuario}/habilitar`);
-      alert(res.data?.message || 'Cuenta habilitada exitosamente');
+      toast.success(res.data?.message || 'Cuenta habilitada exitosamente');
       fetchUsuarios();
       setSelectedUser(null);
     } catch (error) {
-      alert(`Error: ${error.response?.data?.error || error.message}`);
+      toast.error(`Error: ${error.response?.data?.error || error.message}`);
     } finally {
       setActionLoading(null);
     }
@@ -399,7 +403,7 @@ export const Usuarios = () => {
                 <Button 
                   variant="success" 
                   disabled={actionLoading === selectedUser.id_usuario}
-                  onClick={() => handleHabilitar(selectedUser.id_usuario)}
+                  onClick={() => setConfirmConfig({ isOpen: true, id: selectedUser.id_usuario })}
                   className="flex items-center gap-2"
                 >
                   <CheckCircle2 size={16} /> Habilitar Cuenta
@@ -409,6 +413,15 @@ export const Usuarios = () => {
           </div>
         )}
       </Modal>
+
+      <ConfirmModal 
+        isOpen={confirmConfig.isOpen}
+        onClose={() => setConfirmConfig({ isOpen: false, id: null })}
+        onConfirm={handleHabilitar}
+        title="Habilitar Cuenta"
+        message="¿Estás seguro de que deseas habilitar esta cuenta? El usuario podrá volver a acceder al sistema."
+        variant="success"
+      />
     </div>
   );
 };
