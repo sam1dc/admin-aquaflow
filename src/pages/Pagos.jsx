@@ -2,8 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
-import { CreditCard, Check, X, Eye, Smartphone, DollarSign, Wallet, FileText, ChevronRight } from 'lucide-react';
+import { CreditCard, Check, X, Eye, Smartphone, DollarSign, Wallet, FileText, ChevronRight, ChevronLeft } from 'lucide-react';
+import toast from 'react-hot-toast';
 import api from '../api/client';
+
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25];
 
 const metodoConfig = {
   'Pago Movil': { icon: Smartphone, color: 'text-primary' },
@@ -25,15 +28,25 @@ export const Pagos = () => {
   const [tab, setTab] = useState('pendientes');
   const [actionLoading, setActionLoading] = useState(null);
 
-  const fetchPagos = async () => {
+  const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 10, totalPages: 1 });
+  const [pageSize, setPageSize] = useState(10);
+
+  const fetchPagos = async (page = 1, size = pageSize, activeTab = tab) => {
     try {
       setLoading(true);
-      const [pendientesRes, historialRes] = await Promise.all([
-        api.get('/admin/pagos/pendientes'),
-        api.get('/admin/pagos'),
-      ]);
-      setPagosPendientes(pendientesRes.data.data || []);
-      setPagosHistorial(historialRes.data.data || []);
+      const params = new URLSearchParams();
+      params.append('page', String(page));
+      params.append('limit', String(size));
+      
+      if (activeTab === 'pendientes') {
+        const res = await api.get(`/admin/pagos/pendientes?${params.toString()}`);
+        setPagosPendientes(res.data.data || []);
+        setPagination(res.data.pagination || { total: res.data.data?.length || 0, page: 1, limit: size, totalPages: 1 });
+      } else {
+        const res = await api.get(`/admin/pagos?${params.toString()}`);
+        setPagosHistorial(res.data.data || []);
+        setPagination(res.data.pagination || { total: res.data.data?.length || 0, page: 1, limit: size, totalPages: 1 });
+      }
     } catch (error) {
       console.error("Error fetching pagos:", error);
     } finally {
@@ -42,8 +55,22 @@ export const Pagos = () => {
   };
 
   useEffect(() => {
-    fetchPagos();
-  }, []);
+    fetchPagos(1, pageSize, tab);
+  }, [tab]);
+
+  const handlePrevPage = () => {
+    if (pagination.page > 1) fetchPagos(pagination.page - 1, pageSize, tab);
+  };
+
+  const handleNextPage = () => {
+    if (pagination.page < pagination.totalPages) fetchPagos(pagination.page + 1, pageSize, tab);
+  };
+
+  const handlePageSizeChange = (e) => {
+    const newSize = Number(e.target.value);
+    setPageSize(newSize);
+    fetchPagos(1, newSize, tab);
+  };
 
   const handleVerify = async (id_pago, verificado) => {
     try {
@@ -54,10 +81,10 @@ export const Pagos = () => {
         if (motivo_rechazo === null) return;
       }
       const res = await api.patch(`/payments/${id_pago}/verify`, { verificado, motivo_rechazo });
-      alert(res.data?.message || 'Pago procesado exitosamente');
+      toast.success(res.data?.message || 'Pago procesado exitosamente');
       fetchPagos();
     } catch (error) {
-      alert(`Error: ${error.response?.data?.error || error.message}`);
+      toast.error(`Error: ${error.response?.data?.error || error.message}`);
     } finally {
       setActionLoading(null);
     }
@@ -218,6 +245,45 @@ export const Pagos = () => {
             {pagosHistorial.map((p) => renderPagoCard(p, false))}
           </div>
         )
+      )}
+
+      {/* Paginación */}
+      {!loading && ((tab === 'pendientes' && pagosPendientes.length > 0) || (tab === 'historial' && pagosHistorial.length > 0)) && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-2">
+          <div className="flex items-center gap-3">
+            <label className="text-sm text-text-muted">Mostrar:</label>
+            <select
+              value={pageSize}
+              onChange={handlePageSizeChange}
+              className="px-3 py-2 rounded-xl glass-panel text-text-main text-sm font-semibold focus:border-primary/50 outline-none"
+            >
+              {PAGE_SIZE_OPTIONS.map(opt => (
+                <option key={opt} value={opt} className="bg-background-card">{opt} por pág.</option>
+              ))}
+            </select>
+          </div>
+          {pagination.totalPages > 1 && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handlePrevPage}
+                disabled={pagination.page <= 1}
+                className="p-2 rounded-xl glass-panel text-text-muted hover:text-text-main disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <span className="px-4 py-2 rounded-xl bg-primary/10 text-primary font-semibold text-sm">
+                Pág. {pagination.page} / {pagination.totalPages}
+              </span>
+              <button
+                onClick={handleNextPage}
+                disabled={pagination.page >= pagination.totalPages}
+                className="p-2 rounded-xl glass-panel text-text-muted hover:text-text-main disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              >
+                <ChevronRight size={20} />
+              </button>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
