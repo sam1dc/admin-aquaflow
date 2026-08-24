@@ -283,7 +283,7 @@ export const Pedidos = () => {
                     </div>
 
                     {/* Destino */}
-                    <div className="space-y-4 col-span-1 md:col-span-2">
+                    <div className="space-y-4 col-span-1 md:col-span-2 flex flex-col">
                       <h4 className="text-xs text-text-muted uppercase tracking-wider font-semibold">Ubicación de Entrega</h4>
                       <div className="flex flex-col h-full bg-background/50 rounded-lg border border-border/50 p-4 justify-center">
                         <div className="flex flex-col gap-3 mb-2">
@@ -302,7 +302,21 @@ export const Pedidos = () => {
                             </p>
                           </div>
                         </div>
-                        <div className="ml-9 border-t border-border/50 pt-2 mt-2">
+                        
+                        {p.coordenadas_destino && (
+                          <div className="w-full h-48 rounded-lg overflow-hidden border border-border/30 mt-2">
+                            <iframe 
+                              width="100%" 
+                              height="100%" 
+                              style={{ border: 0 }} 
+                              loading="lazy" 
+                              allowFullScreen 
+                              src={`https://maps.google.com/maps?q=${encodeURIComponent(p.coordenadas_destino)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                            ></iframe>
+                          </div>
+                        )}
+
+                        <div className="border-t border-border/50 pt-3">
                           <p className="text-xs text-text-muted">
                             {p.estados_log && p.estados_log.length > 0 ? (
                               <span className="flex flex-col gap-1">

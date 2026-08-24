@@ -2,7 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
-import { Users as UsersIcon, User, Truck, Shield, CheckCircle2, MoreVertical, Star, Ban, Car, CreditCard, ExternalLink, AlertTriangle } from 'lucide-react';
+import { Users as UsersIcon, User, Truck, Shield, CheckCircle2, MoreVertical, Star, Ban, Car, CreditCard, ExternalLink, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { ConfirmModal } from '../components/ui/ConfirmModal';
+
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25];
 import api from '../api/client';
 
 const rolVariant = {
@@ -23,12 +27,29 @@ export const Usuarios = () => {
   const [filter, setFilter] = useState('Todos');
   const [actionLoading, setActionLoading] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 10, totalPages: 1 });
+  const [pageSize, setPageSize] = useState(10);
+  const [confirmConfig, setConfirmConfig] = useState({ isOpen: false, id: null });
 
-  const fetchUsuarios = async () => {
+  const fetchUsuarios = async (page = 1, size = pageSize, currentFilter = filter) => {
     try {
       setLoading(true);
-      const res = await api.get('/admin/usuarios');
+      const params = new URLSearchParams();
+      params.append('page', String(page));
+      params.append('limit', String(size));
+      if (currentFilter !== 'Todos') {
+        const roleParam = currentFilter === 'Admin' ? 'administrador' : currentFilter === 'Cliente' ? 'cliente' : 'cisternero';
+        params.append('rol', roleParam); // Asumiendo que el backend soporta filtro por rol
+      }
+
+      const res = await api.get(`/admin/usuarios?${params.toString()}`);
       setUsuarios(res.data.data || []);
+      if (res.data.pagination) {
+        setPagination(res.data.pagination);
+      } else {
+        // Fallback si no hay paginación del backend aún
+        setPagination({ total: res.data.data?.length || 0, page: 1, limit: size, totalPages: 1 });
+      }
     } catch (error) {
       console.error("Error fetching usuarios:", error);
     } finally {
@@ -37,8 +58,22 @@ export const Usuarios = () => {
   };
 
   useEffect(() => {
-    fetchUsuarios();
-  }, []);
+    fetchUsuarios(1, pageSize, filter);
+  }, [filter]);
+
+  const handlePrevPage = () => {
+    if (pagination.page > 1) fetchUsuarios(pagination.page - 1, pageSize, filter);
+  };
+
+  const handleNextPage = () => {
+    if (pagination.page < pagination.totalPages) fetchUsuarios(pagination.page + 1, pageSize, filter);
+  };
+
+  const handlePageSizeChange = (e) => {
+    const newSize = Number(e.target.value);
+    setPageSize(newSize);
+    fetchUsuarios(1, newSize, filter);
+  };
 
   const getRol = (u) => {
     if (u.administrador) return 'administrador';
@@ -47,16 +82,17 @@ export const Usuarios = () => {
     return 'desconocido';
   };
 
-  const handleHabilitar = async (id_usuario) => {
-    if (!window.confirm('¿Estás seguro de que deseas habilitar esta cuenta?')) return;
+  const handleHabilitar = async () => {
+    const id_usuario = confirmConfig.id;
+    if (!id_usuario) return;
     try {
       setActionLoading(id_usuario);
       const res = await api.patch(`/admin/usuarios/${id_usuario}/habilitar`);
-      alert(res.data?.message || 'Cuenta habilitada exitosamente');
+      toast.success(res.data?.message || 'Cuenta habilitada exitosamente');
       fetchUsuarios();
       setSelectedUser(null);
     } catch (error) {
-      alert(`Error: ${error.response?.data?.error || error.message}`);
+      toast.error(`Error: ${error.response?.data?.error || error.message}`);
     } finally {
       setActionLoading(null);
     }
@@ -248,6 +284,45 @@ export const Usuarios = () => {
         </div>
       )}
 
+      {/* Paginación */}
+      {!loading && usuarios.length > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-2">
+          <div className="flex items-center gap-3">
+            <label className="text-sm text-text-muted">Mostrar:</label>
+            <select
+              value={pageSize}
+              onChange={handlePageSizeChange}
+              className="px-3 py-2 rounded-xl glass-panel text-text-main text-sm font-semibold focus:border-primary/50 outline-none"
+            >
+              {PAGE_SIZE_OPTIONS.map(opt => (
+                <option key={opt} value={opt} className="bg-background-card">{opt} por pág.</option>
+              ))}
+            </select>
+          </div>
+          {pagination.totalPages > 1 && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handlePrevPage}
+                disabled={pagination.page <= 1}
+                className="p-2 rounded-xl glass-panel text-text-muted hover:text-text-main disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <span className="px-4 py-2 rounded-xl bg-primary/10 text-primary font-semibold text-sm">
+                Pág. {pagination.page} / {pagination.totalPages}
+              </span>
+              <button
+                onClick={handleNextPage}
+                disabled={pagination.page >= pagination.totalPages}
+                className="p-2 rounded-xl glass-panel text-text-muted hover:text-text-main disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              >
+                <ChevronRight size={20} />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Detalles del Usuario (Modal) */}
       <Modal isOpen={!!selectedUser} onClose={() => setSelectedUser(null)} title="Detalles del Usuario">
         {selectedUser && (
@@ -349,7 +424,7 @@ export const Usuarios = () => {
                 <Button 
                   variant="success" 
                   disabled={actionLoading === selectedUser.id_usuario}
-                  onClick={() => handleHabilitar(selectedUser.id_usuario)}
+                  onClick={() => setConfirmConfig({ isOpen: true, id: selectedUser.id_usuario })}
                   className="flex items-center gap-2"
                 >
                   <CheckCircle2 size={16} /> Habilitar Cuenta
@@ -359,6 +434,15 @@ export const Usuarios = () => {
           </div>
         )}
       </Modal>
+
+      <ConfirmModal 
+        isOpen={confirmConfig.isOpen}
+        onClose={() => setConfirmConfig({ isOpen: false, id: null })}
+        onConfirm={handleHabilitar}
+        title="Habilitar Cuenta"
+        message="¿Estás seguro de que deseas habilitar esta cuenta? El usuario podrá volver a acceder al sistema."
+        variant="success"
+      />
     </div>
   );
 };

@@ -3,8 +3,12 @@ import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
-import { Gift, Plus, Pencil, Trash2, Percent, Banknote, Crown, Ticket, Users, TrendingUp } from 'lucide-react';
+import { Gift, Plus, Pencil, Trash2, Percent, Banknote, Crown, Ticket, Users, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { ConfirmModal } from '../components/ui/ConfirmModal';
 import api from '../api/client';
+
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25];
 
 export const Promociones = () => {
   const [promos, setPromos] = useState([]);
@@ -21,12 +25,23 @@ export const Promociones = () => {
     limite_usos: '',
   });
   const [submitting, setSubmitting] = useState(false);
+  const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 10, totalPages: 1 });
+  const [pageSize, setPageSize] = useState(10);
+  const [confirmConfig, setConfirmConfig] = useState({ isOpen: false, id: null });
 
-  const fetchPromos = async () => {
+  const fetchPromos = async (page = 1, size = pageSize) => {
     try {
       setLoading(true);
-      const res = await api.get('/admin/promociones');
+      const params = new URLSearchParams();
+      params.append('page', String(page));
+      params.append('limit', String(size));
+      const res = await api.get(`/admin/promociones?${params.toString()}`);
       setPromos(res.data.data || []);
+      if (res.data.pagination) {
+        setPagination(res.data.pagination);
+      } else {
+        setPagination({ total: res.data.data?.length || 0, page: 1, limit: size, totalPages: 1 });
+      }
     } catch (error) {
       console.error("Error fetching promociones:", error);
     } finally {
@@ -35,8 +50,22 @@ export const Promociones = () => {
   };
 
   useEffect(() => {
-    fetchPromos();
+    fetchPromos(1, pageSize);
   }, []);
+
+  const handlePrevPage = () => {
+    if (pagination.page > 1) fetchPromos(pagination.page - 1, pageSize);
+  };
+
+  const handleNextPage = () => {
+    if (pagination.page < pagination.totalPages) fetchPromos(pagination.page + 1, pageSize);
+  };
+
+  const handlePageSizeChange = (e) => {
+    const newSize = Number(e.target.value);
+    setPageSize(newSize);
+    fetchPromos(1, newSize);
+  };
 
   const isActive = (p) => {
     const now = new Date();
@@ -63,14 +92,15 @@ export const Promociones = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id_promocion) => {
-    if (!window.confirm('¿Estás seguro de que deseas eliminar esta promoción?')) return;
+  const handleDelete = async () => {
+    const id_promocion = confirmConfig.id;
+    if (!id_promocion) return;
     try {
       const res = await api.delete(`/admin/promociones/${id_promocion}`);
-      alert(res.data?.message || 'Promoción eliminada');
+      toast.success(res.data?.message || 'Promoción eliminada');
       fetchPromos();
     } catch (error) {
-      alert(`Error: ${error.response?.data?.error || error.message}`);
+      toast.error(`Error: ${error.response?.data?.error || error.message}`);
     }
   };
 
@@ -97,8 +127,9 @@ export const Promociones = () => {
       }
       setIsModalOpen(false);
       fetchPromos();
+      toast.success('Promoción guardada exitosamente');
     } catch (error) {
-      alert(`Error al guardar: ${error.response?.data?.error || error.message}`);
+      toast.error(`Error al guardar: ${error.response?.data?.error || error.message}`);
     } finally {
       setSubmitting(false);
     }
@@ -254,7 +285,7 @@ export const Promociones = () => {
                           <button onClick={() => handleOpenEdit(p)} className="p-2 text-text-muted hover:text-primary transition-colors" title="Editar">
                             <Pencil size={16} />
                           </button>
-                          <button onClick={() => handleDelete(p.id_promocion)} className="p-2 text-text-muted hover:text-status-error transition-colors" title="Eliminar">
+                          <button onClick={() => setConfirmConfig({ isOpen: true, id: p.id_promocion })} className="p-2 text-text-muted hover:text-status-error transition-colors" title="Eliminar">
                             <Trash2 size={16} />
                           </button>
                         </div>
@@ -264,6 +295,45 @@ export const Promociones = () => {
                 })}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* Paginación */}
+        {!loading && promos.length > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 mt-2">
+            <div className="flex items-center gap-3">
+              <label className="text-sm text-text-muted">Mostrar:</label>
+              <select
+                value={pageSize}
+                onChange={handlePageSizeChange}
+                className="px-3 py-2 rounded-xl glass-panel text-text-main text-sm font-semibold focus:border-primary/50 outline-none"
+              >
+                {PAGE_SIZE_OPTIONS.map(opt => (
+                  <option key={opt} value={opt} className="bg-background-card">{opt} por pág.</option>
+                ))}
+              </select>
+            </div>
+            {pagination.totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handlePrevPage}
+                  disabled={pagination.page <= 1}
+                  className="p-2 rounded-xl glass-panel text-text-muted hover:text-text-main disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                <span className="px-4 py-2 rounded-xl bg-primary/10 text-primary font-semibold text-sm">
+                  Pág. {pagination.page} / {pagination.totalPages}
+                </span>
+                <button
+                  onClick={handleNextPage}
+                  disabled={pagination.page >= pagination.totalPages}
+                  className="p-2 rounded-xl glass-panel text-text-muted hover:text-text-main disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                >
+                  <ChevronRight size={20} />
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -372,6 +442,15 @@ export const Promociones = () => {
           </div>
         </form>
       </Modal>
+
+      <ConfirmModal 
+        isOpen={confirmConfig.isOpen}
+        onClose={() => setConfirmConfig({ isOpen: false, id: null })}
+        onConfirm={handleDelete}
+        title="Eliminar Promoción"
+        message="¿Estás seguro de que deseas eliminar esta promoción? Esta acción no se puede deshacer."
+        variant="danger"
+      />
     </div>
   );
 };
