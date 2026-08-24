@@ -76,7 +76,7 @@ export const Dashboard = () => {
           <div className="flex justify-between items-start mb-4 border-b border-border pb-2">
             <div className="flex items-center gap-2">
               <Truck className="text-status-warning text-xl" size={20} />
-              <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wider">Cisterneros</h3>
+              <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wider">Conductores</h3>
             </div>
             {stats.cisternerosPendientes > 0 && <span className="w-2 h-2 rounded-full bg-status-warning animate-pulse"></span>}
           </div>
@@ -130,7 +130,7 @@ export const Dashboard = () => {
         {/* Cisterneros por Validar List (Span 7) */}
         <div className="col-span-12 lg:col-span-7 glass-panel rounded-xl flex flex-col hover-ambient-glow transition-all duration-300">
           <div className="p-4 border-b border-border flex justify-between items-center bg-background/50 rounded-t-xl">
-            <h3 className="text-xl font-semibold text-text-main">Cisterneros por Validar</h3>
+            <h3 className="text-xl font-semibold text-text-main">Conductores por Validar</h3>
             <a href="/cisterneros" className="text-primary text-sm hover:underline flex items-center">
               Ver todos &rarr;
             </a>
@@ -139,13 +139,13 @@ export const Dashboard = () => {
             {stats.cisternerosPendientes > 0 ? (
               <div className="p-8 text-center text-text-main">
                 <Truck size={48} className="mx-auto mb-4 text-primary opacity-50" />
-                <p className="font-medium text-lg">Tienes {stats.cisternerosPendientes} cisternero(s) esperando validación.</p>
+                <p className="font-medium text-lg">Tienes {stats.cisternerosPendientes} conductor(es) esperando validación.</p>
                 <a href="/cisterneros" className="mt-4 inline-block bg-primary text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-primary-dark transition-colors ambient-glow">Revisar Solicitudes</a>
               </div>
             ) : (
               <div className="p-12 text-center text-text-muted flex flex-col items-center justify-center">
                 <Truck size={48} className="mb-4 opacity-20" />
-                <p>No hay cisterneros pendientes de validación</p>
+                <p>No hay conductores pendientes de validación</p>
               </div>
             )}
           </div>

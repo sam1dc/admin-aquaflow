@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
-import { CreditCard, Check, X, Eye, Smartphone, DollarSign, Wallet, FileText, ChevronRight, ChevronLeft } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { CreditCard, Check, X, Eye, Smartphone, DollarSign, Wallet, FileText, ChevronRight } from 'lucide-react';
+import { Modal } from '../components/ui/Modal';
 import api from '../api/client';
 
 const PAGE_SIZE_OPTIONS = [10, 15, 20, 25];
@@ -27,6 +27,17 @@ export const Pagos = () => {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('pendientes');
   const [actionLoading, setActionLoading] = useState(null);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [selectedPagoId, setSelectedPagoId] = useState(null);
+  const [motivoRechazo, setMotivoRechazo] = useState('');
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => {
+      setToast({ show: false, message: '', type: 'success' });
+    }, 4500);
+  };
 
   const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 10, totalPages: 1 });
   const [pageSize, setPageSize] = useState(10);
@@ -72,19 +83,22 @@ export const Pagos = () => {
     fetchPagos(1, newSize, tab);
   };
 
-  const handleVerify = async (id_pago, verificado) => {
+  const handleVerify = async (id_pago, verificado, motivo = undefined) => {
     try {
-      setActionLoading(id_pago);
-      let motivo_rechazo = undefined;
-      if (!verificado) {
-        motivo_rechazo = window.prompt('Indique el motivo del rechazo:');
-        if (motivo_rechazo === null) return;
+      if (!verificado && motivo === undefined) {
+        setSelectedPagoId(id_pago);
+        setShowRejectModal(true);
+        return;
       }
-      const res = await api.patch(`/payments/${id_pago}/verify`, { verificado, motivo_rechazo });
-      toast.success(res.data?.message || 'Pago procesado exitosamente');
+
+      setActionLoading(id_pago);
+      const res = await api.patch(`/payments/${id_pago}/verify`, { verificado, motivo_rechazo: motivo });
+      showToast(res.data?.message || 'Pago procesado exitosamente', 'success');
       fetchPagos();
+      setShowRejectModal(false);
+      setMotivoRechazo('');
     } catch (error) {
-      toast.error(`Error: ${error.response?.data?.error || error.message}`);
+      showToast(`Error: ${error.response?.data?.error || error.message}`, 'error');
     } finally {
       setActionLoading(null);
     }
@@ -247,42 +261,52 @@ export const Pagos = () => {
         )
       )}
 
-      {/* Paginación */}
-      {!loading && ((tab === 'pendientes' && pagosPendientes.length > 0) || (tab === 'historial' && pagosHistorial.length > 0)) && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-2">
-          <div className="flex items-center gap-3">
-            <label className="text-sm text-text-muted">Mostrar:</label>
-            <select
-              value={pageSize}
-              onChange={handlePageSizeChange}
-              className="px-3 py-2 rounded-xl glass-panel text-text-main text-sm font-semibold focus:border-primary/50 outline-none"
+      {/* Modal para Rechazar Pago */}
+      <Modal 
+        isOpen={showRejectModal} 
+        onClose={() => setShowRejectModal(false)} 
+        title="Rechazar Pago"
+      >
+        <div className="flex flex-col gap-4 mt-4">
+          <p className="text-sm text-text-muted">Por favor, indique el motivo por el cual está rechazando este pago. Esta información será visible para el cliente.</p>
+          <textarea
+            value={motivoRechazo}
+            onChange={(e) => setMotivoRechazo(e.target.value)}
+            placeholder="Ej: El comprobante no es legible..."
+            className="w-full bg-background/50 border border-border rounded-xl p-3 text-sm text-text-main resize-none focus:border-status-error focus:ring-1 focus:ring-status-error outline-none"
+            rows={4}
+          />
+          <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-border/50">
+            <Button variant="outline" onClick={() => setShowRejectModal(false)}>Cancelar</Button>
+            <Button 
+              variant="error" 
+              onClick={() => handleVerify(selectedPagoId, false, motivoRechazo)}
+              disabled={!motivoRechazo.trim() || actionLoading === selectedPagoId}
             >
-              {PAGE_SIZE_OPTIONS.map(opt => (
-                <option key={opt} value={opt} className="bg-background-card">{opt} por pág.</option>
-              ))}
-            </select>
+              Rechazar Pago
+            </Button>
           </div>
-          {pagination.totalPages > 1 && (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handlePrevPage}
-                disabled={pagination.page <= 1}
-                className="p-2 rounded-xl glass-panel text-text-muted hover:text-text-main disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-              >
-                <ChevronLeft size={20} />
-              </button>
-              <span className="px-4 py-2 rounded-xl bg-primary/10 text-primary font-semibold text-sm">
-                Pág. {pagination.page} / {pagination.totalPages}
-              </span>
-              <button
-                onClick={handleNextPage}
-                disabled={pagination.page >= pagination.totalPages}
-                className="p-2 rounded-xl glass-panel text-text-muted hover:text-text-main disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-              >
-                <ChevronRight size={20} />
-              </button>
-            </div>
-          )}
+        </div>
+      </Modal>
+
+      {/* Toast Notificación Personalizada */}
+      {toast.show && (
+        <div className={`fixed bottom-6 right-6 z-50 animate-fade-in flex items-center gap-3 px-6 py-4 rounded-xl shadow-2xl border backdrop-blur-md ${
+          toast.type === 'error' ? 'bg-status-error/10 border-status-error/30 text-status-error' : 'bg-status-success/10 border-status-success/30 text-status-success'
+        }`}>
+          <div className={`p-2 rounded-full ${toast.type === 'error' ? 'bg-status-error/20' : 'bg-status-success/20'}`}>
+            {toast.type === 'error' ? <X size={20} /> : <Check size={20} />}
+          </div>
+          <div className="flex flex-col pr-4">
+            <span className="font-bold text-sm">{toast.type === 'error' ? 'Error' : 'Operación Exitosa'}</span>
+            <span className="text-sm opacity-90">{toast.message}</span>
+          </div>
+          <button 
+            onClick={() => setToast({ ...toast, show: false })}
+            className="absolute top-2 right-2 p-1 opacity-50 hover:opacity-100 transition-opacity rounded-full hover:bg-white/10"
+          >
+            <X size={14} />
+          </button>
         </div>
       )}
     </div>

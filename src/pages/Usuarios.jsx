@@ -17,7 +17,7 @@ const rolVariant = {
 
 const rolLabel = {
   'cliente': 'Cliente',
-  'cisternero': 'Cisternero',
+  'cisternero': 'Conductor',
   'administrador': 'Admin',
 };
 
@@ -98,13 +98,13 @@ export const Usuarios = () => {
     }
   };
 
-  const roles = ['Todos', 'Cliente', 'Cisternero', 'Admin'];
+  const roles = ['Todos', 'Cliente', 'Conductor', 'Admin'];
   const filtered = filter === 'Todos'
     ? usuarios
     : usuarios.filter(u => {
         const rol = getRol(u);
         return (filter === 'Cliente' && rol === 'cliente') ||
-               (filter === 'Cisternero' && rol === 'cisternero') ||
+               (filter === 'Conductor' && rol === 'cisternero') ||
                (filter === 'Admin' && rol === 'administrador');
       });
 
@@ -143,7 +143,7 @@ export const Usuarios = () => {
                     : 'bg-transparent border border-transparent text-text-muted hover:text-text-main hover:bg-white/5'
                 }`}
               >
-                {rol === 'Admin' ? 'Administradores' : rol === 'Cliente' ? 'Clientes' : rol === 'Cisternero' ? 'Cisterneros' : 'Todos'}
+                {rol === 'Admin' ? 'Administradores' : rol === 'Cliente' ? 'Clientes' : rol === 'Conductor' ? 'Conductores' : 'Todos'}
               </button>
             );
           })}
@@ -180,37 +180,37 @@ export const Usuarios = () => {
                   <div className="absolute -right-4 -top-4 w-24 h-24 bg-status-error/10 blur-[30px] rounded-full pointer-events-none"></div>
                 )}
                 
-                <div className="flex justify-between items-start relative z-10">
-                  <div className="flex gap-4 items-center">
-                    <div className="relative">
+                <div className="flex justify-between items-center gap-2 relative z-10">
+                  <div className="flex gap-3 items-center min-w-0 flex-1">
+                    <div className="relative flex-shrink-0">
                       <div className={`w-12 h-12 rounded-xl flex items-center justify-center border ${isBanned ? 'bg-background border-status-error/30 opacity-70' : 'bg-background-card border-border'}`}>
                         {getUserIcon(rol)}
                       </div>
                       <div className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-background-card ${isBanned ? 'bg-status-error' : 'bg-status-success'}`}></div>
                     </div>
-                    <div>
-                      <h3 className={`text-base font-bold leading-tight transition-colors ${isBanned ? 'text-text-muted line-through' : 'text-text-main group-hover:text-primary'}`}>
+                    <div className="min-w-0 flex-1">
+                      <h3 className={`text-base font-bold leading-tight truncate transition-colors ${isBanned ? 'text-text-muted line-through' : 'text-text-main group-hover:text-primary'}`}>
                         {u.nombre}
                       </h3>
-                      <p className="text-xs text-text-muted mt-1">{u.email}</p>
+                      <p className="text-xs text-text-muted mt-1 truncate">{u.email}</p>
                     </div>
                   </div>
                   
-                  {isBanned ? (
-                    <div className="bg-status-error/10 text-status-error border border-status-error/20 px-2 py-1 rounded text-[10px] font-bold tracking-wider uppercase flex items-center gap-1">
-                      <Ban size={12} /> Suspendido
-                    </div>
-                  ) : (
-                    <div className={`border px-2 py-1 rounded text-[10px] font-bold tracking-wider uppercase ${
-                      rol === 'cliente' ? 'bg-primary/10 text-primary border-primary/20' :
-                      rol === 'cisternero' ? 'bg-status-warning/10 text-status-warning border-status-warning/20' :
-                      'bg-status-location/10 text-status-location border-status-location/20'
-                    }`}>
-                      {rol === 'cliente' && u.cliente?._count?.pedidos > 5 ? (
-                        <span className="flex items-center gap-1"><Star size={12} /> VIP</span>
-                      ) : rol}
-                    </div>
-                  )}
+                  <div className="flex-shrink-0">
+                    {isBanned ? (
+                      <div className="bg-status-error/10 text-status-error border border-status-error/20 px-2 py-1 rounded text-[10px] font-bold tracking-wider uppercase flex items-center gap-1">
+                        <Ban size={12} /> Suspendido
+                      </div>
+                    ) : (
+                      <div className={`border px-2 py-1 rounded text-[10px] font-bold tracking-wider uppercase whitespace-nowrap ${
+                        rol === 'cliente' ? 'bg-primary/10 text-primary border-primary/20' :
+                        rol === 'cisternero' ? 'bg-status-warning/10 text-status-warning border-status-warning/20' :
+                        'bg-status-location/10 text-status-location border-status-location/20'
+                      }`}>
+                        {rol === 'cisternero' ? 'conductor' : rol}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 mt-2 pt-4 border-t border-border/50 relative z-10">
@@ -343,37 +343,58 @@ export const Usuarios = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <h4 className="text-sm font-bold text-primary mb-3 uppercase tracking-wider">Contacto</h4>
-                <div className="space-y-2 text-sm">
-                  <p className="flex justify-between"><span className="text-text-muted">Teléfono:</span> <span className="font-medium text-text-main">{selectedUser.telefono || 'N/A'}</span></p>
-                  <p className="flex justify-between"><span className="text-text-muted">Email:</span> <span className="font-medium text-text-main">{selectedUser.email}</span></p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="min-w-0 flex flex-col gap-3">
+                <h4 className="text-sm font-bold text-primary uppercase tracking-wider">Contacto</h4>
+                <div className="flex flex-col gap-1">
+                  <span className="text-text-muted text-xs uppercase font-semibold tracking-wider">Teléfono</span>
+                  <span className="font-medium text-text-main break-words">{selectedUser.telefono || selectedUser.phone || 'N/A'}</span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-text-muted text-xs uppercase font-semibold tracking-wider">Email</span>
+                  <span className="font-medium text-text-main break-all">{selectedUser.email}</span>
                 </div>
               </div>
 
               {getRol(selectedUser) === 'cliente' && selectedUser.cliente && (
-                <div>
-                  <h4 className="text-sm font-bold text-primary mb-3 uppercase tracking-wider">Datos Cliente</h4>
-                  <div className="space-y-2 text-sm">
-                    <p className="flex justify-between"><span className="text-text-muted">RIF/CI:</span> <span className="font-medium text-text-main">{selectedUser.cliente.identificacion_fiscal || 'N/A'}</span></p>
-                    <p className="flex justify-between"><span className="text-text-muted">Billetera:</span> <span className="font-bold text-status-success">${Number(selectedUser.cliente.saldo_billetera).toFixed(2)}</span></p>
-                    <p className="flex justify-between"><span className="text-text-muted">Pedidos:</span> <span className="font-medium text-text-main">{selectedUser.cliente._count?.pedidos || 0}</span></p>
+                <div className="min-w-0 flex flex-col gap-3">
+                  <h4 className="text-sm font-bold text-primary uppercase tracking-wider">Datos Cliente</h4>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-text-muted text-xs uppercase font-semibold tracking-wider">RIF/CI</span>
+                    <span className="font-medium text-text-main break-words">{selectedUser.cliente.identificacion_fiscal || 'N/A'}</span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-text-muted text-xs uppercase font-semibold tracking-wider">Billetera</span>
+                    <span className="font-bold text-status-success">${Number(selectedUser.cliente.saldo_billetera).toFixed(2)}</span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-text-muted text-xs uppercase font-semibold tracking-wider">Pedidos</span>
+                    <span className="font-medium text-text-main">{selectedUser.cliente._count?.pedidos || 0}</span>
                   </div>
                 </div>
               )}
 
               {getRol(selectedUser) === 'cisternero' && selectedUser.cisternero && (
-                <div>
-                  <h4 className="text-sm font-bold text-primary mb-3 uppercase tracking-wider">Datos Cisternero</h4>
-                  <div className="space-y-2 text-sm">
-                    <p className="flex justify-between"><span className="text-text-muted">RIF:</span> <span className="font-medium text-text-main">{selectedUser.cisternero.rif_personal || 'N/A'}</span></p>
-                    <p className="flex justify-between"><span className="text-text-muted">Licencia:</span> <span className="font-medium text-text-main">{selectedUser.cisternero.licencia_conducir || 'N/A'}</span></p>
-                    <p className="flex justify-between"><span className="text-text-muted">Balance:</span> <span className="font-bold text-status-success">${Number(selectedUser.cisternero.balance_billetera).toFixed(2)}</span></p>
-                    {selectedUser.cisternero.vehiculo && (
-                      <p className="flex justify-between"><span className="text-text-muted">Capacidad:</span> <span className="font-medium text-text-main">{Number(selectedUser.cisternero.vehiculo.capacidad_tanque).toLocaleString()} Lts</span></p>
-                    )}
+                <div className="min-w-0 flex flex-col gap-3">
+                  <h4 className="text-sm font-bold text-primary uppercase tracking-wider">Datos Conductor</h4>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-text-muted text-xs uppercase font-semibold tracking-wider">RIF</span>
+                    <span className="font-medium text-text-main break-words">{selectedUser.cisternero.rif_personal || 'N/A'}</span>
                   </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-text-muted text-xs uppercase font-semibold tracking-wider">Licencia</span>
+                    <span className="font-medium text-text-main break-words">{selectedUser.cisternero.licencia_conducir || 'N/A'}</span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-text-muted text-xs uppercase font-semibold tracking-wider">Balance</span>
+                    <span className="font-bold text-status-success">${Number(selectedUser.cisternero.balance_billetera).toFixed(2)}</span>
+                  </div>
+                  {selectedUser.cisternero.vehiculo && (
+                    <div className="flex flex-col gap-1">
+                      <span className="text-text-muted text-xs uppercase font-semibold tracking-wider">Capacidad</span>
+                      <span className="font-medium text-text-main">{Number(selectedUser.cisternero.vehiculo.capacidad_tanque).toLocaleString()} Lts</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

@@ -74,7 +74,7 @@ export const Cisterneros = () => {
     }
   };
 
-  if (loading) return <div className="p-8 text-center text-text-muted animate-pulse">Cargando cisterneros pendientes...</div>;
+  if (loading) return <div className="p-8 text-center text-text-muted animate-pulse">Cargando conductores pendientes...</div>;
 
   return (
     <div className="animate-fade-in relative z-0">
@@ -94,7 +94,7 @@ export const Cisterneros = () => {
         <Card className="flex flex-col items-center justify-center p-16 text-text-muted">
           <Truck size={56} className="mx-auto mb-4 opacity-30 text-primary" />
           <h3 className="text-lg font-semibold text-primary mb-1">Todo al día</h3>
-          <p>No hay cisterneros pendientes de validación en este momento.</p>
+          <p>No hay conductores pendientes de validación en este momento.</p>
         </Card>
       ) : (
         <div className="grid grid-cols-12 gap-6 pb-8">

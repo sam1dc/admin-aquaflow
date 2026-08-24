@@ -17,7 +17,7 @@ import { useAuth } from '../../hooks/useAuth';
 const navItems = [
   { name: 'Dashboard', path: '/', icon: LayoutDashboard },
   { name: 'Pedidos', path: '/pedidos', icon: Droplets },
-  { name: 'Cisterneros', path: '/cisterneros', icon: Truck },
+  { name: 'Conductores', path: '/cisterneros', icon: Truck },
   { name: 'Pagos', path: '/pagos', icon: CreditCard },
   { name: 'Tarifas', path: '/tarifas', icon: Tag },
   { name: 'Promociones', path: '/promociones', icon: Gift },

@@ -218,7 +218,7 @@ export const Incidencias = () => {
                     <div>
                       <p className="text-xs text-text-muted uppercase font-semibold tracking-wider mb-2">Orden Asociada</p>
                       {pedido ? (
-                        <a href="/pedidos" className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:text-primary-dark transition-colors">
+                        <a href={`/pedidos?search=${pedido.id_pedido}`} className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:text-primary-dark transition-colors">
                           #{pedido.id_pedido.slice(0, 8).toUpperCase()}
                           <ExternalLink size={14} />
                         </a>

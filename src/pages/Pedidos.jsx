@@ -1,11 +1,13 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { 
   Droplets, Package, MapPin, User, Truck, ChevronDown,
   Search, Clock, CheckCircle2, XCircle, Loader2, ChevronLeft, ChevronRight,
-  CalendarDays, Wallet, AlertTriangle, Phone, Mail, Building
+  CalendarDays, Wallet, AlertTriangle, Phone, Mail, Building, History
 } from 'lucide-react';
+import { Modal } from '../components/ui/Modal';
 import api from '../api/client';
 
 const ESTADOS = [
@@ -29,6 +31,8 @@ export const Pedidos = () => {
   const [pageSize, setPageSize] = useState(10);
   const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 10, totalPages: 1 });
   const [stats, setStats] = useState({});
+  const [historialModal, setHistorialModal] = useState({ isOpen: false, pedido: null });
+  const location = useLocation();
 
   const fetchPedidos = useCallback(async (estado = filter, page = 1, search = searchTerm, size = pageSize) => {
     try {
@@ -65,8 +69,17 @@ export const Pedidos = () => {
   }, []);
 
   useEffect(() => {
-    fetchPedidos(filter, 1, searchTerm);
-  }, [filter, fetchPedidos]);
+    const params = new URLSearchParams(location.search);
+    const searchParam = params.get('search');
+    
+    if (searchParam) {
+      setSearchTerm(searchParam);
+      setFilter('Todos');
+      fetchPedidos('Todos', 1, searchParam);
+    } else {
+      fetchPedidos(filter, 1, searchTerm);
+    }
+  }, [location.search, fetchPedidos]);
 
   useEffect(() => {
     fetchStats();
@@ -272,10 +285,22 @@ export const Pedidos = () => {
                     {/* Destino */}
                     <div className="space-y-4 col-span-1 md:col-span-2 flex flex-col">
                       <h4 className="text-xs text-text-muted uppercase tracking-wider font-semibold">Ubicación de Entrega</h4>
-                      <div className="flex flex-col h-full bg-background/50 rounded-lg border border-border/50 p-4 gap-4">
-                        <div className="flex items-start gap-3">
-                          <MapPin size={24} className="text-primary mt-1 shrink-0" />
-                          <p className="text-sm font-medium text-text-main break-all leading-relaxed">{p.coordenadas_destino || 'Ubicación no proporcionada'}</p>
+                      <div className="flex flex-col h-full bg-background/50 rounded-lg border border-border/50 p-4 justify-center">
+                        <div className="flex flex-col gap-3 mb-2">
+                          <div className="flex items-start gap-3">
+                            <div className="w-6 flex justify-center flex-shrink-0"><MapPin size={18} className="text-text-muted mt-0.5" /></div>
+                            <p className="text-sm font-medium text-text-main break-all leading-relaxed">
+                              <span className="text-text-muted text-[10px] uppercase font-bold tracking-wider mr-2 bg-background-card px-2 py-0.5 rounded border border-border">Origen</span>
+                              {p.direccion_origen || 'Llenadero Principal'}
+                            </p>
+                          </div>
+                          <div className="flex items-start gap-3">
+                            <div className="w-6 flex justify-center flex-shrink-0"><MapPin size={22} className="text-primary mt-0.5" /></div>
+                            <p className="text-sm font-medium text-text-main break-all leading-relaxed">
+                              <span className="text-primary text-[10px] uppercase font-bold tracking-wider mr-2 bg-primary/10 px-2 py-0.5 rounded border border-primary/20">Destino</span>
+                              {p.direccion_destino || (p.coordenadas_destino ? `Coordenadas: ${p.coordenadas_destino}` : 'Ubicación no proporcionada')}
+                            </p>
+                          </div>
                         </div>
                         
                         {p.coordenadas_destino && (
@@ -302,6 +327,17 @@ export const Pedidos = () => {
                               'A la espera de salida.'
                             )}
                           </p>
+                          <div className="mt-3">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setHistorialModal({ isOpen: true, pedido: p });
+                              }}
+                              className="text-xs font-semibold text-primary hover:text-primary-dark transition-colors inline-flex items-center gap-1 bg-primary/10 px-3 py-1.5 rounded-full border border-primary/20 hover:bg-primary/20"
+                            >
+                              <History size={14} /> Ver Historial Completo
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -358,6 +394,44 @@ export const Pedidos = () => {
           <Loader2 size={24} className="animate-spin text-primary" />
         </div>
       )}
+
+      {/* Modal Historial del Pedido */}
+      <Modal 
+        isOpen={historialModal.isOpen} 
+        onClose={() => setHistorialModal({ isOpen: false, pedido: null })} 
+        title="Historial del Pedido"
+      >
+        <div className="mt-4 flex flex-col gap-4">
+          {!historialModal.pedido?.estados_log || historialModal.pedido.estados_log.length === 0 ? (
+            <div className="p-6 text-center text-text-muted bg-background/50 rounded-xl border border-border">
+              <History size={32} className="mx-auto mb-2 opacity-50 text-text-muted" />
+              <p className="font-medium">No hay historial registrado para este pedido.</p>
+            </div>
+          ) : (
+            <div className="relative border-l-2 border-primary/30 ml-3 space-y-6 py-2">
+              {historialModal.pedido.estados_log.map((log, index) => (
+                <div key={index} className="relative pl-6">
+                  <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-background border-2 border-primary"></div>
+                  <div className="bg-background-card border border-border p-3 rounded-lg shadow-sm">
+                    <p className="text-sm font-bold text-text-main">{log.estado}</p>
+                    <p className="text-xs text-text-muted mt-1">{formatDate(log.timestamp)}</p>
+                    {log.nota && <p className="text-xs text-text-main mt-2 bg-background/50 p-2 rounded">{log.nota}</p>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          <div className="flex justify-end pt-4 border-t border-border/50">
+            <button 
+              onClick={() => setHistorialModal({ isOpen: false, pedido: null })}
+              className="px-4 py-2 bg-background-card border border-border hover:bg-white/5 rounded-lg text-sm font-semibold transition-colors"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };
