@@ -5,9 +5,9 @@ import { Header } from './Header';
 import { useAuth } from '../../hooks/useAuth';
 
 export const Layout = () => {
-  const { token } = useAuth();
+  const { session } = useAuth();
 
-  if (!token) {
+  if (!session) {
     return <Navigate to="/login" replace />;
   }
 

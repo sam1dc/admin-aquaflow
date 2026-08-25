@@ -1,42 +1,41 @@
 import axios from 'axios';
+import { supabase } from '../supabase';
 
-// URL de producción por defecto si VITE_API_URL no está definida en la plataforma de despliegue (ej. Vercel)
-const DEFAULT_API_URL = 'https://aquaflow-api-qs31.onrender.com/api/v1';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
 
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || DEFAULT_API_URL,
+const apiClient = axios.create({
+  baseURL: API_URL,
   headers: {
-    'Content-Type': 'application/json',
-  },
+    'Content-Type': 'application/json'
+  }
 });
 
-// Interceptor para inyectar el token en cada petición
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('aquaflow_admin_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+// Interceptor para inyectar el token de la sesión de Supabase
+apiClient.interceptors.request.use(
+  async (config) => {
+    // Intentamos obtener la sesión actual directamente de Supabase
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (session && session.access_token) {
+      config.headers['Authorization'] = `Bearer ${session.access_token}`;
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    return Promise.reject(error);
+  }
 );
 
-// Interceptor para manejar respuestas (ej: token expirado)
-api.interceptors.response.use(
+// Interceptor para manejar respuestas (opcional)
+apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 || error.response?.status === 403) {
-      // Si el token es inválido o no hay permisos, limpiamos y redirigimos
-      // (a menos que estemos en la ruta de login)
-      if (window.location.pathname !== '/login') {
-        localStorage.removeItem('aquaflow_admin_token');
-        localStorage.removeItem('aquaflow_admin_user');
-        window.location.href = '/login';
-      }
+    if (error.response && error.response.status === 401) {
+      // Opcional: manejar expiración de token o logout automático si es necesario
+      console.warn("No autorizado: ", error.response.data);
     }
     return Promise.reject(error);
   }
 );
 
-export default api;
+export default apiClient;

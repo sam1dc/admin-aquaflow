@@ -10,10 +10,11 @@ export const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { login, token } = useAuth();
+  const { login, session } = useAuth();
   const navigate = useNavigate();
 
-  if (token) {
+  // Si ya hay sesión, redirigir al dashboard
+  if (session) {
     return <Navigate to="/" replace />;
   }
 
