@@ -19,6 +19,7 @@ const rolLabel = {
   'cliente': 'Cliente',
   'cisternero': 'Conductor',
   'administrador': 'Admin',
+  'soporte': 'Soporte',
 };
 
 export const Usuarios = () => {
@@ -36,7 +37,8 @@ export const Usuarios = () => {
     nombre: '', email: '', telefono: '', password: '', rol: 'cliente',
     identificacion_fiscal: '',
     rif_personal: '', licencia_conducir: '',
-    vehiculo: { marca: '', modelo: '', placa: '', capacidad_tanque: '' }
+    vehiculo: { marca: '', modelo: '', placa: '', capacidad_tanque: '' },
+    documento_identidad: null, licencia_documento: null
   });
 
   const fetchUsuarios = async (page = 1, size = pageSize, currentFilter = filter) => {
@@ -84,7 +86,7 @@ export const Usuarios = () => {
   };
 
   const getRol = (u) => {
-    if (u.administrador) return 'administrador';
+    if (u.administrador) return u.administrador.nivel_permiso === 'soporte' ? 'soporte' : 'administrador';
     if (u.cisternero) return 'cisternero';
     if (u.cliente) return 'cliente';
     return 'desconocido';
@@ -111,28 +113,37 @@ export const Usuarios = () => {
     try {
       setCreatingUser(true);
       
-      const payload = { ...newUserForm };
-      if (payload.rol === 'cliente') {
-        delete payload.rif_personal;
-        delete payload.licencia_conducir;
-        delete payload.vehiculo;
-      } else if (payload.rol === 'administrador') {
-        delete payload.identificacion_fiscal;
-        delete payload.rif_personal;
-        delete payload.licencia_conducir;
-        delete payload.vehiculo;
-      } else if (payload.rol === 'cisternero') {
-        delete payload.identificacion_fiscal;
-        payload.vehiculo.capacidad_tanque = Number(payload.vehiculo.capacidad_tanque);
+      const formData = new FormData();
+      formData.append('nombre', newUserForm.nombre);
+      formData.append('email', newUserForm.email);
+      formData.append('telefono', newUserForm.telefono);
+      formData.append('password', newUserForm.password);
+      formData.append('rol', newUserForm.rol);
+
+      if (newUserForm.rol === 'cliente') {
+        formData.append('identificacion_fiscal', newUserForm.identificacion_fiscal);
+      } else if (newUserForm.rol === 'cisternero') {
+        formData.append('rif_personal', newUserForm.rif_personal);
+        formData.append('licencia_conducir', newUserForm.licencia_conducir);
+        formData.append('vehiculo_marca', newUserForm.vehiculo.marca);
+        formData.append('vehiculo_modelo', newUserForm.vehiculo.modelo);
+        formData.append('vehiculo_placa', newUserForm.vehiculo.placa);
+        formData.append('vehiculo_capacidad', newUserForm.vehiculo.capacidad_tanque);
+        
+        if (newUserForm.documento_identidad) formData.append('documento_identidad', newUserForm.documento_identidad);
+        if (newUserForm.licencia_documento) formData.append('licencia_documento', newUserForm.licencia_documento);
       }
 
-      await api.post('/admin/usuarios', payload);
+      await api.post('/admin/usuarios', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
       toast.success('Usuario creado exitosamente');
       setShowNewUserModal(false);
       setNewUserForm({
         nombre: '', email: '', telefono: '', password: '', rol: 'cliente',
         identificacion_fiscal: '', rif_personal: '', licencia_conducir: '',
-        vehiculo: { marca: '', modelo: '', placa: '', capacidad_tanque: '' }
+        vehiculo: { marca: '', modelo: '', placa: '', capacidad_tanque: '' },
+        documento_identidad: null, licencia_documento: null
       });
       fetchUsuarios(1, pageSize, filter);
     } catch (error) {
@@ -142,14 +153,15 @@ export const Usuarios = () => {
     }
   };
 
-  const roles = ['Todos', 'Cliente', 'Conductor', 'Admin'];
+  const roles = ['Todos', 'Cliente', 'Conductor', 'Admin', 'Soporte'];
   const filtered = filter === 'Todos'
     ? usuarios
     : usuarios.filter(u => {
         const rol = getRol(u);
         return (filter === 'Cliente' && rol === 'cliente') ||
                (filter === 'Conductor' && rol === 'cisternero') ||
-               (filter === 'Admin' && rol === 'administrador');
+               (filter === 'Admin' && rol === 'administrador') ||
+               (filter === 'Soporte' && rol === 'soporte');
       });
 
   const getUserIcon = (rol) => {
@@ -505,6 +517,7 @@ export const Usuarios = () => {
                 <option value="cliente">Cliente</option>
                 <option value="cisternero">Conductor</option>
                 <option value="administrador">Administrador</option>
+                <option value="soporte">Soporte</option>
               </select>
             </div>
             <div className="flex flex-col gap-1">
@@ -625,6 +638,25 @@ export const Usuarios = () => {
                     value={newUserForm.vehiculo.capacidad_tanque}
                     onChange={(e) => setNewUserForm({ ...newUserForm, vehiculo: { ...newUserForm.vehiculo, capacidad_tanque: e.target.value } })}
                     className="px-4 py-2 rounded-xl bg-background-card border border-border text-text-main focus:border-primary outline-none"
+                  />
+                </div>
+              </div>
+              <h4 className="text-sm font-bold text-primary mt-4">Documentos Adjuntos</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-semibold text-text-muted">Cédula / Documento de Identidad (JPG/PDF) <span className="text-status-error">*</span></label>
+                  <input
+                    type="file" required accept=".jpg,.jpeg,.png,.pdf"
+                    onChange={(e) => setNewUserForm({ ...newUserForm, documento_identidad: e.target.files[0] })}
+                    className="px-4 py-2 rounded-xl bg-background-card border border-border text-text-main focus:border-primary outline-none file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-semibold text-text-muted">Licencia de Conducir (JPG/PDF) <span className="text-status-error">*</span></label>
+                  <input
+                    type="file" required accept=".jpg,.jpeg,.png,.pdf"
+                    onChange={(e) => setNewUserForm({ ...newUserForm, licencia_documento: e.target.files[0] })}
+                    className="px-4 py-2 rounded-xl bg-background-card border border-border text-text-main focus:border-primary outline-none file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
                   />
                 </div>
               </div>
