@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
-import { Check, X, User, Truck, Phone, Mail, Calendar, FileText, Badge as BadgeIcon, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Modal } from '../components/ui/Modal';
+import { Check, X, User, Truck, Phone, Mail, FileText, Badge as BadgeIcon, ChevronLeft, ChevronRight, Eye, Image, Clock, ShieldCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../api/client';
 
@@ -15,6 +16,9 @@ export const Cisterneros = () => {
 
   const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 10, totalPages: 1 });
   const [pageSize, setPageSize] = useState(10);
+
+  // Modal de previsualización de documentos
+  const [docPreview, setDocPreview] = useState({ isOpen: false, url: null, title: '' });
 
   const fetchCisterneros = async (page = 1, size = pageSize) => {
     try {
@@ -74,6 +78,10 @@ export const Cisterneros = () => {
     }
   };
 
+  const openDocPreview = (url, title) => {
+    setDocPreview({ isOpen: true, url, title });
+  };
+
   if (loading) return <div className="p-8 text-center text-text-muted animate-pulse">Cargando conductores pendientes...</div>;
 
   return (
@@ -103,10 +111,14 @@ export const Cisterneros = () => {
               <div className="p-6 flex flex-col md:flex-row gap-6 flex-grow">
                 {/* Profile Column */}
                 <div className="flex flex-col items-center gap-2 md:w-1/3 border-b md:border-b-0 md:border-r border-border pb-6 md:pb-0 md:pr-6">
-                  <div className="relative w-24 h-24 rounded-full p-1 border-2 border-primary/30 mb-2">
-                    <div className="w-full h-full rounded-full bg-background-card flex items-center justify-center text-primary">
-                      <User size={40} />
-                    </div>
+                  <div className="relative w-24 h-24 rounded-full p-1 border-2 border-primary/30 mb-2 overflow-hidden">
+                    {c.usuario.foto_url ? (
+                      <img src={c.usuario.foto_url} alt={c.usuario.nombre} className="w-full h-full rounded-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full rounded-full bg-background-card flex items-center justify-center text-primary">
+                        <User size={40} />
+                      </div>
+                    )}
                   </div>
                   <h4 className="text-xl text-text-main font-semibold text-center">{c.usuario.nombre}</h4>
                   <span className="px-2 py-1 rounded bg-background border border-border text-text-muted text-xs font-semibold">
@@ -150,10 +162,10 @@ export const Cisterneros = () => {
                       </div>
                       <div className="bg-background p-3 rounded-lg border border-border/50 flex flex-col justify-center items-center">
                         {c.vehiculo?.fotos_url ? (
-                           <a href={c.vehiculo.fotos_url} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline flex flex-col items-center gap-1">
-                             <FileText size={20} />
+                           <button onClick={() => openDocPreview(c.vehiculo.fotos_url, 'Foto del Vehículo')} className="text-xs text-primary hover:underline flex flex-col items-center gap-1 cursor-pointer">
+                             <Image size={20} />
                              Ver Foto
-                           </a>
+                           </button>
                         ) : (
                           <span className="text-xs text-text-muted text-center">Sin foto</span>
                         )}
@@ -166,13 +178,84 @@ export const Cisterneros = () => {
                     <h5 className="text-xs text-primary font-semibold tracking-widest uppercase mb-3 flex items-center gap-2">
                       <FileText size={16} /> Documentación Adjunta
                     </h5>
-                    <div className="flex gap-3">
-                       {/* This is a placeholder since the API only returns licencia_conducir as text, we can show it as a badge */}
-                      <div className="flex-1 flex flex-col items-center justify-center gap-1 p-3 rounded-lg border border-status-success/30 bg-status-success/10 group relative">
-                        <BadgeIcon size={24} className="text-status-success group-hover:scale-110 transition-transform" />
-                        <span className="text-xs font-medium text-text-main mt-1 text-center">Licencia</span>
-                        <span className="text-[10px] text-text-muted truncate w-full text-center" title={c.licencia_conducir}>{c.licencia_conducir}</span>
-                        <div className="absolute top-1 right-1"><Check size={12} className="text-status-success" /></div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {/* Cédula / Documento de Identidad */}
+                      <button
+                        onClick={() => c.documento_identidad_url && openDocPreview(c.documento_identidad_url, 'Cédula / Documento de Identidad')}
+                        disabled={!c.documento_identidad_url}
+                        className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border transition-all cursor-pointer group/doc ${
+                          c.documento_identidad_url
+                            ? 'border-status-warning/40 bg-status-warning/5 hover:border-status-warning hover:bg-status-warning/10 hover:shadow-[0_0_12px_rgba(245,158,11,0.15)]'
+                            : 'border-border/50 bg-background/50 opacity-50 cursor-not-allowed'
+                        }`}
+                      >
+                        <div className="relative">
+                          <BadgeIcon size={28} className={c.documento_identidad_url ? 'text-status-warning group-hover/doc:scale-110 transition-transform' : 'text-text-muted'} />
+                          <div className="absolute -top-1 -right-2">
+                            {c.documento_identidad_url ? (
+                              <Clock size={12} className="text-status-warning" />
+                            ) : (
+                              <X size={12} className="text-text-muted" />
+                            )}
+                          </div>
+                        </div>
+                        <span className="text-xs font-bold text-text-main">Cédula</span>
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                          c.documento_identidad_url
+                            ? 'bg-status-warning/20 text-status-warning'
+                            : 'bg-border/50 text-text-muted'
+                        }`}>
+                          {c.documento_identidad_url ? '⏳ Pendiente' : 'No subida'}
+                        </span>
+                        {c.documento_identidad_url && (
+                          <span className="text-[10px] text-primary flex items-center gap-1 mt-1 opacity-0 group-hover/doc:opacity-100 transition-opacity">
+                            <Eye size={10} /> Click para ver
+                          </span>
+                        )}
+                      </button>
+
+                      {/* Licencia de Conducir */}
+                      <button
+                        onClick={() => c.licencia_documento_url && openDocPreview(c.licencia_documento_url, 'Licencia de Conducir')}
+                        disabled={!c.licencia_documento_url}
+                        className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border transition-all cursor-pointer group/doc ${
+                          c.licencia_documento_url
+                            ? 'border-status-warning/40 bg-status-warning/5 hover:border-status-warning hover:bg-status-warning/10 hover:shadow-[0_0_12px_rgba(245,158,11,0.15)]'
+                            : 'border-border/50 bg-background/50 opacity-50 cursor-not-allowed'
+                        }`}
+                      >
+                        <div className="relative">
+                          <FileText size={28} className={c.licencia_documento_url ? 'text-status-warning group-hover/doc:scale-110 transition-transform' : 'text-text-muted'} />
+                          <div className="absolute -top-1 -right-2">
+                            {c.licencia_documento_url ? (
+                              <Clock size={12} className="text-status-warning" />
+                            ) : (
+                              <X size={12} className="text-text-muted" />
+                            )}
+                          </div>
+                        </div>
+                        <span className="text-xs font-bold text-text-main">Licencia</span>
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                          c.licencia_documento_url
+                            ? 'bg-status-warning/20 text-status-warning'
+                            : 'bg-border/50 text-text-muted'
+                        }`}>
+                          {c.licencia_documento_url ? '⏳ Pendiente' : 'No subida'}
+                        </span>
+                        {c.licencia_documento_url && (
+                          <span className="text-[10px] text-primary flex items-center gap-1 mt-1 opacity-0 group-hover/doc:opacity-100 transition-opacity">
+                            <Eye size={10} /> Click para ver
+                          </span>
+                        )}
+                      </button>
+
+                      {/* Número de Licencia (texto) */}
+                      <div className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl border border-border/50 bg-background/50">
+                        <ShieldCheck size={28} className="text-primary" />
+                        <span className="text-xs font-bold text-text-main">N° Licencia</span>
+                        <span className="text-[10px] text-text-muted truncate w-full text-center" title={c.licencia_conducir}>
+                          {c.licencia_conducir}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -241,6 +324,38 @@ export const Cisterneros = () => {
           )}
         </div>
       )}
+
+      {/* Modal de Previsualización de Documento */}
+      <Modal isOpen={docPreview.isOpen} onClose={() => setDocPreview({ isOpen: false, url: null, title: '' })} title={docPreview.title} maxWidth="max-w-3xl">
+        <div className="flex flex-col items-center gap-4">
+          {docPreview.url && (
+            docPreview.url.toLowerCase().endsWith('.pdf') ? (
+              <iframe src={docPreview.url} className="w-full h-[70vh] rounded-xl border border-border" title={docPreview.title} />
+            ) : (
+              <div className="w-full rounded-xl overflow-hidden border border-border bg-background/50">
+                <img
+                  src={docPreview.url}
+                  alt={docPreview.title}
+                  className="w-full h-auto max-h-[70vh] object-contain"
+                />
+              </div>
+            )
+          )}
+          <div className="flex gap-3 w-full justify-end pt-2 border-t border-border/50">
+            <a
+              href={docPreview.url}
+              target="_blank"
+              rel="noreferrer"
+              className="px-4 py-2 rounded-lg border border-primary text-primary text-sm font-semibold hover:bg-primary/10 transition-colors flex items-center gap-2"
+            >
+              <Eye size={14} /> Abrir en nueva pestaña
+            </a>
+            <Button variant="outline" onClick={() => setDocPreview({ isOpen: false, url: null, title: '' })}>
+              Cerrar
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };
