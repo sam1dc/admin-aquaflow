@@ -333,7 +333,7 @@ export const Cisterneros = () => {
       )}
 
       {/* Modal de Previsualización de Documento */}
-      <Modal isOpen={docPreview.isOpen} onClose={() => setDocPreview({ isOpen: false, url: null, title: '', id: null, type: null })} title={docPreview.title} maxWidth="max-w-3xl">
+      <Modal isOpen={docPreview.isOpen} onClose={() => setDocPreview({ isOpen: false, url: null, title: '', id: null, type: null })} title={docPreview.title} maxWidth="max-w-5xl">
         <div className="flex flex-col items-center gap-4">
           {docPreview.url && (
             docPreview.url.toLowerCase().endsWith('.pdf') ? (

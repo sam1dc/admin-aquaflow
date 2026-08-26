@@ -12,7 +12,7 @@ import api from '../api/client';
 const ImagePreview = ({ file }) => {
   if (!file) return null;
   const isImage = file.type.startsWith('image/');
-  
+
   if (isImage) {
     const url = URL.createObjectURL(file);
     return (
@@ -21,7 +21,7 @@ const ImagePreview = ({ file }) => {
       </div>
     );
   }
-  
+
   return (
     <div className="mt-3 p-4 rounded-xl border border-border bg-background/50 flex items-center gap-3 text-primary">
       <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
@@ -59,12 +59,13 @@ export const Usuarios = () => {
   const [confirmConfig, setConfirmConfig] = useState({ isOpen: false, id: null });
   const [showNewUserModal, setShowNewUserModal] = useState(false);
   const [creatingUser, setCreatingUser] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState({ isOpen: false, url: null, title: '' });
   const [newUserForm, setNewUserForm] = useState({
     nombre: '', email: '', telefono: '', password: '', rol: 'cliente',
     identificacion_fiscal: '',
     rif_personal: '', licencia_conducir: '',
     vehiculo: { marca: '', modelo: '', placa: '', capacidad_tanque: '' },
-    documento_identidad: null, licencia_documento: null
+    documento_identidad: null, licencia_documento: null, foto_vehiculo: null, foto_perfil: null
   });
 
   const fetchUsuarios = async (page = 1, size = pageSize, currentFilter = filter) => {
@@ -138,7 +139,7 @@ export const Usuarios = () => {
     e.preventDefault();
     try {
       setCreatingUser(true);
-      
+
       const formData = new FormData();
       formData.append('nombre', newUserForm.nombre);
       formData.append('email', newUserForm.email);
@@ -155,9 +156,14 @@ export const Usuarios = () => {
         formData.append('vehiculo_modelo', newUserForm.vehiculo.modelo);
         formData.append('vehiculo_placa', newUserForm.vehiculo.placa);
         formData.append('vehiculo_capacidad', newUserForm.vehiculo.capacidad_tanque);
-        
+
         if (newUserForm.documento_identidad) formData.append('documento_identidad', newUserForm.documento_identidad);
         if (newUserForm.licencia_documento) formData.append('licencia_documento', newUserForm.licencia_documento);
+        if (newUserForm.foto_vehiculo) formData.append('foto_vehiculo', newUserForm.foto_vehiculo);
+      }
+
+      if (newUserForm.foto_perfil) {
+        formData.append('foto_perfil', newUserForm.foto_perfil);
       }
 
       await api.post('/admin/usuarios', formData, {
@@ -169,7 +175,7 @@ export const Usuarios = () => {
         nombre: '', email: '', telefono: '', password: '', rol: 'cliente',
         identificacion_fiscal: '', rif_personal: '', licencia_conducir: '',
         vehiculo: { marca: '', modelo: '', placa: '', capacidad_tanque: '' },
-        documento_identidad: null, licencia_documento: null
+        documento_identidad: null, licencia_documento: null, foto_vehiculo: null, foto_perfil: null
       });
       fetchUsuarios(1, pageSize, filter);
     } catch (error) {
@@ -183,12 +189,12 @@ export const Usuarios = () => {
   const filtered = filter === 'Todos'
     ? usuarios
     : usuarios.filter(u => {
-        const rol = getRol(u);
-        return (filter === 'Cliente' && rol === 'cliente') ||
-               (filter === 'Conductor' && rol === 'cisternero') ||
-               (filter === 'Admin' && rol === 'administrador') ||
-               (filter === 'Soporte' && rol === 'soporte');
-      });
+      const rol = getRol(u);
+      return (filter === 'Cliente' && rol === 'cliente') ||
+        (filter === 'Conductor' && rol === 'cisternero') ||
+        (filter === 'Admin' && rol === 'administrador') ||
+        (filter === 'Soporte' && rol === 'soporte');
+    });
 
   const getUserIcon = (rol) => {
     if (rol === 'cliente') return <User size={24} className="text-status-location" />;
@@ -222,11 +228,10 @@ export const Usuarios = () => {
               <button
                 key={rol}
                 onClick={() => setFilter(rol)}
-                className={`px-5 py-2 rounded-lg font-semibold text-sm transition-all whitespace-nowrap outline-none ${
-                  isActive
-                    ? 'bg-primary/20 text-primary border border-primary/30'
-                    : 'bg-transparent border border-transparent text-text-muted hover:text-text-main hover:bg-white/5'
-                }`}
+                className={`px-5 py-2 rounded-lg font-semibold text-sm transition-all whitespace-nowrap outline-none ${isActive
+                  ? 'bg-primary/20 text-primary border border-primary/30'
+                  : 'bg-transparent border border-transparent text-text-muted hover:text-text-main hover:bg-white/5'
+                  }`}
               >
                 {rol === 'Admin' ? 'Administradores' : rol === 'Cliente' ? 'Clientes' : rol === 'Conductor' ? 'Conductores' : 'Todos'}
               </button>
@@ -257,19 +262,31 @@ export const Usuarios = () => {
             const sancionesPendientes = (u.sanciones || []).filter(s => s.estado === 'Pendiente').length;
 
             return (
-              <div 
-                key={u.id_usuario} 
+              <div
+                key={u.id_usuario}
                 className={`glass-card rounded-xl p-6 flex flex-col gap-4 transition-all duration-300 group ${isBanned ? 'border-status-error/40 hover:border-status-error/60' : 'hover:border-primary/40 hover:shadow-glow'}`}
               >
                 {isBanned && (
                   <div className="absolute -right-4 -top-4 w-24 h-24 bg-status-error/10 blur-[30px] rounded-full pointer-events-none"></div>
                 )}
-                
+
                 <div className="flex justify-between items-center gap-2 relative z-10">
                   <div className="flex gap-3 items-center min-w-0 flex-1">
                     <div className="relative flex-shrink-0">
-                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center border ${isBanned ? 'bg-background border-status-error/30 opacity-70' : 'bg-background-card border-border'}`}>
-                        {getUserIcon(rol)}
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center border overflow-hidden ${isBanned ? 'bg-background border-status-error/30 opacity-70' : 'bg-background-card border-border'}`}>
+                        {u.foto_url ? (
+                          <img
+                            src={u.foto_url}
+                            alt={u.nombre}
+                            className="w-full h-full object-cover cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setAvatarPreview({ isOpen: true, url: u.foto_url, title: `Foto de Perfil - ${u.nombre}` });
+                            }}
+                          />
+                        ) : (
+                          getUserIcon(rol)
+                        )}
                       </div>
                       <div className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-background-card ${isBanned ? 'bg-status-error' : 'bg-status-success'}`}></div>
                     </div>
@@ -280,18 +297,17 @@ export const Usuarios = () => {
                       <p className="text-xs text-text-muted mt-1 truncate">{u.email}</p>
                     </div>
                   </div>
-                  
+
                   <div className="flex-shrink-0">
                     {isBanned ? (
                       <div className="bg-status-error/10 text-status-error border border-status-error/20 px-2 py-1 rounded text-[10px] font-bold tracking-wider uppercase flex items-center gap-1">
                         <Ban size={12} /> Suspendido
                       </div>
                     ) : (
-                      <div className={`border px-2 py-1 rounded text-[10px] font-bold tracking-wider uppercase whitespace-nowrap ${
-                        rol === 'cliente' ? 'bg-primary/10 text-primary border-primary/20' :
+                      <div className={`border px-2 py-1 rounded text-[10px] font-bold tracking-wider uppercase whitespace-nowrap ${rol === 'cliente' ? 'bg-primary/10 text-primary border-primary/20' :
                         rol === 'cisternero' ? 'bg-status-warning/10 text-status-warning border-status-warning/20' :
-                        'bg-status-location/10 text-status-location border-status-location/20'
-                      }`}>
+                          'bg-status-location/10 text-status-location border-status-location/20'
+                        }`}>
                         {rol === 'cisternero' ? 'conductor' : rol}
                       </div>
                     )}
@@ -353,9 +369,9 @@ export const Usuarios = () => {
                 </div>
 
                 <div className="flex items-center gap-3 mt-auto pt-4 relative z-10">
-                  <button 
+                  <button
                     onClick={() => setSelectedUser(u)}
-                    className={`flex-1 bg-transparent border border-border py-2 rounded-lg transition-colors text-sm font-semibold flex justify-center items-center gap-2 ${isBanned ? 'hover:border-status-error/50 text-status-error hover:bg-status-error/10' : 'hover:border-primary hover:text-primary text-text-muted'}`}
+                    className={`flex-1 bg-transparent border border-border py-2 rounded-lg transition-colors text-sm font-semibold flex justify-center items-center gap-2 ${isBanned ? 'hover:border-status-error/50 text-status-error hover:bg-status-error/10' : 'hover:border-primary hover:text-primary text-text-muted cursor-pointer'}`}
                   >
                     {isBanned ? 'Gestionar Estado' : 'Ver Detalles'}
                   </button>
@@ -413,8 +429,19 @@ export const Usuarios = () => {
         {selectedUser && (
           <div className="flex flex-col gap-6 mt-4">
             <div className="flex items-center gap-4 pb-4 border-b border-border/50">
-              <div className="w-16 h-16 rounded-2xl bg-background-card border border-border flex items-center justify-center">
-                {getUserIcon(getRol(selectedUser))}
+              <div className="w-16 h-16 rounded-2xl bg-background-card border border-border flex items-center justify-center overflow-hidden shrink-0">
+                {selectedUser.foto_url ? (
+                  <img
+                    src={selectedUser.foto_url}
+                    alt={selectedUser.nombre}
+                    className="w-full h-full object-cover cursor-zoom-in"
+                    onClick={() => {
+                      setAvatarPreview({ isOpen: true, url: selectedUser.foto_url, title: `Foto de Perfil - ${selectedUser.nombre}` });
+                    }}
+                  />
+                ) : (
+                  getUserIcon(getRol(selectedUser))
+                )}
               </div>
               <div>
                 <h3 className="text-xl font-bold text-text-main">{selectedUser.nombre}</h3>
@@ -506,8 +533,8 @@ export const Usuarios = () => {
                 Cerrar
               </Button>
               {selectedUser.cuenta_inhabilitada && (
-                <Button 
-                  variant="success" 
+                <Button
+                  variant="success"
                   disabled={actionLoading === selectedUser.id_usuario}
                   onClick={() => setConfirmConfig({ isOpen: true, id: selectedUser.id_usuario })}
                   className="flex items-center gap-2"
@@ -520,7 +547,7 @@ export const Usuarios = () => {
         )}
       </Modal>
 
-      <ConfirmModal 
+      <ConfirmModal
         isOpen={confirmConfig.isOpen}
         onClose={() => setConfirmConfig({ isOpen: false, id: null })}
         onConfirm={handleHabilitar}
@@ -530,66 +557,108 @@ export const Usuarios = () => {
       />
 
       {/* Modal Nuevo Usuario */}
-      <Modal isOpen={showNewUserModal} onClose={() => setShowNewUserModal(false)} title="Registrar Nuevo Usuario" maxWidth="max-w-4xl">
+      <Modal isOpen={showNewUserModal} onClose={() => setShowNewUserModal(false)} title="Registrar Nuevo Usuario" maxWidth="max-w-6xl">
         <form onSubmit={handleCreateUser} className="flex flex-col gap-6 mt-4">
-          
-          <div className="bg-background/30 p-5 rounded-2xl border border-border/50">
-            <h4 className="text-base font-bold text-primary mb-4 flex items-center gap-2">
+
+          <div className="bg-background/30 p-6 rounded-2xl border border-border/50">
+            <h4 className="text-base font-bold text-primary mb-6 flex items-center gap-2">
               <User size={18} /> Datos Principales
             </h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-semibold text-text-muted">Rol del Usuario</label>
-                <select
-                  value={newUserForm.rol}
-                  onChange={(e) => setNewUserForm({ ...newUserForm, rol: e.target.value })}
-                  className="px-4 py-2.5 rounded-xl bg-background-card border border-border text-text-main focus:border-primary outline-none transition-colors"
+
+            <div className="flex flex-col lg:flex-row gap-8 items-start">
+              {/* Columna Izquierda: Uploader Circular del Avatar */}
+              <div className="flex flex-col items-center gap-3 shrink-0 w-full lg:w-36">
+                <span className="text-xs font-bold text-text-muted uppercase tracking-wider text-center">Foto de Perfil</span>
+                <div
+                  onClick={() => document.getElementById('avatar-upload-input').click()}
+                  className="relative w-28 h-28 rounded-full border-2 border-dashed border-primary/30 hover:border-primary/60 bg-background-card/50 flex flex-col items-center justify-center cursor-pointer overflow-hidden transition-all group hover:scale-105 shadow-[0_0_15px_rgba(59,130,246,0.05)]"
                 >
-                  <option value="cliente">Cliente</option>
-                  <option value="cisternero">Conductor</option>
-                  <option value="administrador">Administrador</option>
-                  <option value="soporte">Soporte</option>
-                </select>
-              </div>
-              <div className="flex flex-col gap-1 md:col-span-2">
-                <label className="text-sm font-semibold text-text-muted">Nombre Completo</label>
+                  {newUserForm.foto_perfil ? (
+                    <img
+                      src={URL.createObjectURL(newUserForm.foto_perfil)}
+                      alt="Avatar Preview"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center text-text-muted group-hover:text-primary transition-colors p-3 text-center">
+                      <User size={28} className="opacity-50 group-hover:opacity-80 transition-opacity mb-1" />
+                      <span className="text-[10px] font-bold uppercase tracking-wider">Subir Foto</span>
+                    </div>
+                  )}
+                  {/* Hover Overlay */}
+                  <div className="absolute inset-0 bg-black/55 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <User size={20} className="text-white mb-0.5" />
+                    <span className="text-[9px] text-white font-bold uppercase tracking-wider">Cambiar</span>
+                  </div>
+                </div>
                 <input
-                  type="text" required
-                  value={newUserForm.nombre}
-                  onChange={(e) => setNewUserForm({ ...newUserForm, nombre: e.target.value })}
-                  className="px-4 py-2.5 rounded-xl bg-background-card border border-border text-text-main focus:border-primary outline-none transition-colors"
-                  placeholder="Ej. Juan Pérez"
+                  id="avatar-upload-input"
+                  type="file" accept=".jpg,.jpeg,.png,.webp"
+                  className="hidden"
+                  onChange={(e) => setNewUserForm({ ...newUserForm, foto_perfil: e.target.files[0] })}
                 />
+                <p className="text-[10px] text-text-muted text-center max-w-[120px]">Formatos: JPG, PNG o WEBP (opcional)</p>
               </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-semibold text-text-muted">Correo Electrónico</label>
-                <input
-                  type="email" required
-                  value={newUserForm.email}
-                  onChange={(e) => setNewUserForm({ ...newUserForm, email: e.target.value })}
-                  className="px-4 py-2.5 rounded-xl bg-background-card border border-border text-text-main focus:border-primary outline-none transition-colors"
-                  placeholder="correo@ejemplo.com"
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-semibold text-text-muted">Teléfono</label>
-                <input
-                  type="tel" required
-                  value={newUserForm.telefono}
-                  onChange={(e) => setNewUserForm({ ...newUserForm, telefono: e.target.value })}
-                  className="px-4 py-2.5 rounded-xl bg-background-card border border-border text-text-main focus:border-primary outline-none transition-colors"
-                  placeholder="Ej. 04141234567"
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-semibold text-text-muted">Contraseña Temporal</label>
-                <input
-                  type="password" required minLength="6"
-                  value={newUserForm.password}
-                  onChange={(e) => setNewUserForm({ ...newUserForm, password: e.target.value })}
-                  className="px-4 py-2.5 rounded-xl bg-background-card border border-border text-text-main focus:border-primary outline-none transition-colors"
-                  placeholder="Mínimo 6 caracteres"
-                />
+
+              {/* Columna Derecha: Campos del Formulario */}
+              <div className="flex-grow w-full grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-semibold text-text-muted">Rol del Usuario</label>
+                  <select
+                    value={newUserForm.rol}
+                    onChange={(e) => setNewUserForm({ ...newUserForm, rol: e.target.value })}
+                    className="px-4 py-2.5 rounded-xl bg-background-card border border-border text-text-main focus:border-primary outline-none transition-colors"
+                  >
+                    <option value="cliente">Cliente</option>
+                    <option value="cisternero">Conductor</option>
+                    <option value="administrador">Administrador</option>
+                    <option value="soporte">Soporte</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1 md:col-span-2">
+                  <label className="text-sm font-semibold text-text-muted">Nombre Completo</label>
+                  <input
+                    type="text" required
+                    value={newUserForm.nombre}
+                    onChange={(e) => setNewUserForm({ ...newUserForm, nombre: e.target.value })}
+                    className="px-4 py-2.5 rounded-xl bg-background-card border border-border text-text-main focus:border-primary outline-none transition-colors"
+                    placeholder="Ej. Juan Pérez"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-semibold text-text-muted">Correo Electrónico</label>
+                  <input
+                    type="email" required
+                    value={newUserForm.email}
+                    onChange={(e) => setNewUserForm({ ...newUserForm, email: e.target.value })}
+                    className="px-4 py-2.5 rounded-xl bg-background-card border border-border text-text-main focus:border-primary outline-none transition-colors"
+                    placeholder="correo@ejemplo.com"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-semibold text-text-muted">Teléfono</label>
+                  <input
+                    type="tel" required
+                    value={newUserForm.telefono}
+                    onChange={(e) => setNewUserForm({ ...newUserForm, telefono: e.target.value })}
+                    className="px-4 py-2.5 rounded-xl bg-background-card border border-border text-text-main focus:border-primary outline-none transition-colors"
+                    placeholder="Ej. 04141234567"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-semibold text-text-muted">Contraseña Temporal</label>
+                  <input
+                    type="password" required minLength="6"
+                    value={newUserForm.password}
+                    onChange={(e) => setNewUserForm({ ...newUserForm, password: e.target.value })}
+                    className="px-4 py-2.5 rounded-xl bg-background-card border border-border text-text-main focus:border-primary outline-none transition-colors"
+                    placeholder="Mínimo 6 caracteres"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -616,7 +685,7 @@ export const Usuarios = () => {
               <h4 className="text-base font-bold text-status-warning mb-4 flex items-center gap-2">
                 <Truck size={18} /> Datos del Conductor y Vehículo
               </h4>
-              
+
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Lado Izquierdo: Formularios de Texto */}
                 <div className="flex flex-col gap-5">
@@ -640,7 +709,7 @@ export const Usuarios = () => {
                       />
                     </div>
                   </div>
-                  
+
                   <div className="p-4 rounded-xl border border-border/50 bg-background/50">
                     <h5 className="text-sm font-bold text-text-main mb-3">Especificaciones del Camión</h5>
                     <div className="grid grid-cols-2 gap-4">
@@ -696,7 +765,7 @@ export const Usuarios = () => {
                     />
                     <ImagePreview file={newUserForm.documento_identidad} />
                   </div>
-                  
+
                   <div className="flex flex-col gap-1 bg-background-card p-4 rounded-xl border border-border">
                     <label className="text-sm font-bold text-text-main">Foto de Licencia de Conducir <span className="text-status-error">*</span></label>
                     <p className="text-xs text-text-muted mb-2">Debe estar vigente y ser legible.</p>
@@ -706,6 +775,17 @@ export const Usuarios = () => {
                       className="text-sm text-text-muted file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-status-warning/10 file:text-status-warning hover:file:bg-status-warning/20 transition-colors cursor-pointer"
                     />
                     <ImagePreview file={newUserForm.licencia_documento} />
+                  </div>
+
+                  <div className="flex flex-col gap-1 bg-background-card p-4 rounded-xl border border-border">
+                    <label className="text-sm font-bold text-text-main">Foto del Vehículo <span className="text-status-error">*</span></label>
+                    <p className="text-xs text-text-muted mb-2">Foto visible y legible del camión cisterna.</p>
+                    <input
+                      type="file" required accept=".jpg,.jpeg,.png,.pdf"
+                      onChange={(e) => setNewUserForm({ ...newUserForm, foto_vehiculo: e.target.files[0] })}
+                      className="text-sm text-text-muted file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-status-warning/10 file:text-status-warning hover:file:bg-status-warning/20 transition-colors cursor-pointer"
+                    />
+                    <ImagePreview file={newUserForm.foto_vehiculo} />
                   </div>
                 </div>
               </div>
@@ -721,6 +801,31 @@ export const Usuarios = () => {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {/* Modal de Previsualización de Foto de Perfil */}
+      <Modal
+        isOpen={avatarPreview.isOpen}
+        onClose={() => setAvatarPreview({ isOpen: false, url: null, title: '' })}
+        title={avatarPreview.title}
+        maxWidth="max-w-xl"
+      >
+        <div className="flex flex-col items-center justify-center gap-4">
+          {avatarPreview.url && (
+            <div className="w-full max-h-[70vh] rounded-2xl overflow-hidden border border-border bg-background/50 flex items-center justify-center">
+              <img
+                src={avatarPreview.url}
+                alt="Avatar"
+                className="w-full h-auto max-h-[70vh] object-contain"
+              />
+            </div>
+          )}
+          <div className="flex justify-end w-full pt-4 border-t border-border/50">
+            <Button variant="outline" onClick={() => setAvatarPreview({ isOpen: false, url: null, title: '' })}>
+              Cerrar
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );
