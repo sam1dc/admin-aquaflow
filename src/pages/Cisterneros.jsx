@@ -17,8 +17,11 @@ export const Cisterneros = () => {
   const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 10, totalPages: 1 });
   const [pageSize, setPageSize] = useState(10);
 
+  // Estado para rastrear qué documentos han sido validados por el administrador
+  const [validatedDocs, setValidatedDocs] = useState({});
+
   // Modal de previsualización de documentos
-  const [docPreview, setDocPreview] = useState({ isOpen: false, url: null, title: '' });
+  const [docPreview, setDocPreview] = useState({ isOpen: false, url: null, title: '', id: null, type: null });
 
   const fetchCisterneros = async (page = 1, size = pageSize) => {
     try {
@@ -78,8 +81,16 @@ export const Cisterneros = () => {
     }
   };
 
-  const openDocPreview = (url, title) => {
-    setDocPreview({ isOpen: true, url, title });
+  const openDocPreview = (url, title, id, type) => {
+    setDocPreview({ isOpen: true, url, title, id, type });
+  };
+
+  const markAsValidated = () => {
+    if (docPreview.id && docPreview.type) {
+      setValidatedDocs(prev => ({ ...prev, [`${docPreview.id}_${docPreview.type}`]: true }));
+      toast.success(`${docPreview.title} marcado como verificado`);
+    }
+    setDocPreview({ isOpen: false, url: null, title: '', id: null, type: null });
   };
 
   if (loading) return <div className="p-8 text-center text-text-muted animate-pulse">Cargando conductores pendientes...</div>;
@@ -106,7 +117,11 @@ export const Cisterneros = () => {
         </Card>
       ) : (
         <div className="grid grid-cols-12 gap-6 pb-8">
-          {cisterneros.map((c) => (
+          {cisterneros.map((c) => {
+            const isCedulaValid = validatedDocs[`${c.id_cisternero}_cedula`];
+            const isLicenciaValid = validatedDocs[`${c.id_cisternero}_licencia`];
+
+            return (
             <article key={c.id_cisternero} className="col-span-12 xl:col-span-6 glass-card p-0 overflow-hidden flex flex-col group">
               <div className="p-6 flex flex-col md:flex-row gap-6 flex-grow">
                 {/* Profile Column */}
@@ -162,7 +177,7 @@ export const Cisterneros = () => {
                       </div>
                       <div className="bg-background p-3 rounded-lg border border-border/50 flex flex-col justify-center items-center">
                         {c.vehiculo?.fotos_url ? (
-                           <button onClick={() => openDocPreview(c.vehiculo.fotos_url, 'Foto del Vehículo')} className="text-xs text-primary hover:underline flex flex-col items-center gap-1 cursor-pointer">
+                           <button onClick={() => openDocPreview(c.vehiculo.fotos_url, 'Foto del Vehículo', c.id_cisternero, 'vehiculo')} className="text-xs text-primary hover:underline flex flex-col items-center gap-1 cursor-pointer">
                              <Image size={20} />
                              Ver Foto
                            </button>
@@ -181,31 +196,27 @@ export const Cisterneros = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       {/* Cédula / Documento de Identidad */}
                       <button
-                        onClick={() => c.documento_identidad_url && openDocPreview(c.documento_identidad_url, 'Cédula / Documento de Identidad')}
+                        onClick={() => c.documento_identidad_url && openDocPreview(c.documento_identidad_url, 'Cédula / Documento de Identidad', c.id_cisternero, 'cedula')}
                         disabled={!c.documento_identidad_url}
                         className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border transition-all cursor-pointer group/doc ${
-                          c.documento_identidad_url
-                            ? 'border-status-warning/40 bg-status-warning/5 hover:border-status-warning hover:bg-status-warning/10 hover:shadow-[0_0_12px_rgba(245,158,11,0.15)]'
-                            : 'border-border/50 bg-background/50 opacity-50 cursor-not-allowed'
+                          !c.documento_identidad_url ? 'border-border/50 bg-background/50 opacity-50 cursor-not-allowed' :
+                          isCedulaValid 
+                            ? 'border-status-success/40 bg-status-success/5 hover:border-status-success hover:bg-status-success/10'
+                            : 'border-status-warning/40 bg-status-warning/5 hover:border-status-warning hover:bg-status-warning/10 hover:shadow-[0_0_12px_rgba(245,158,11,0.15)]'
                         }`}
                       >
                         <div className="relative">
-                          <BadgeIcon size={28} className={c.documento_identidad_url ? 'text-status-warning group-hover/doc:scale-110 transition-transform' : 'text-text-muted'} />
+                          <BadgeIcon size={28} className={!c.documento_identidad_url ? 'text-text-muted' : isCedulaValid ? 'text-status-success' : 'text-status-warning group-hover/doc:scale-110 transition-transform'} />
                           <div className="absolute -top-1 -right-2">
-                            {c.documento_identidad_url ? (
-                              <Clock size={12} className="text-status-warning" />
-                            ) : (
-                              <X size={12} className="text-text-muted" />
-                            )}
+                            {c.documento_identidad_url && (isCedulaValid ? <Check size={12} className="text-status-success" /> : <Clock size={12} className="text-status-warning" />)}
                           </div>
                         </div>
                         <span className="text-xs font-bold text-text-main">Cédula</span>
                         <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                          c.documento_identidad_url
-                            ? 'bg-status-warning/20 text-status-warning'
-                            : 'bg-border/50 text-text-muted'
+                          !c.documento_identidad_url ? 'bg-border/50 text-text-muted' :
+                          isCedulaValid ? 'bg-status-success/20 text-status-success' : 'bg-status-warning/20 text-status-warning'
                         }`}>
-                          {c.documento_identidad_url ? '⏳ Pendiente' : 'No subida'}
+                          {!c.documento_identidad_url ? 'No subida' : isCedulaValid ? 'Verificado' : '⏳ Pendiente'}
                         </span>
                         {c.documento_identidad_url && (
                           <span className="text-[10px] text-primary flex items-center gap-1 mt-1 opacity-0 group-hover/doc:opacity-100 transition-opacity">
@@ -216,31 +227,27 @@ export const Cisterneros = () => {
 
                       {/* Licencia de Conducir */}
                       <button
-                        onClick={() => c.licencia_documento_url && openDocPreview(c.licencia_documento_url, 'Licencia de Conducir')}
+                        onClick={() => c.licencia_documento_url && openDocPreview(c.licencia_documento_url, 'Licencia de Conducir', c.id_cisternero, 'licencia')}
                         disabled={!c.licencia_documento_url}
                         className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border transition-all cursor-pointer group/doc ${
-                          c.licencia_documento_url
-                            ? 'border-status-warning/40 bg-status-warning/5 hover:border-status-warning hover:bg-status-warning/10 hover:shadow-[0_0_12px_rgba(245,158,11,0.15)]'
-                            : 'border-border/50 bg-background/50 opacity-50 cursor-not-allowed'
+                          !c.licencia_documento_url ? 'border-border/50 bg-background/50 opacity-50 cursor-not-allowed' :
+                          isLicenciaValid 
+                            ? 'border-status-success/40 bg-status-success/5 hover:border-status-success hover:bg-status-success/10'
+                            : 'border-status-warning/40 bg-status-warning/5 hover:border-status-warning hover:bg-status-warning/10 hover:shadow-[0_0_12px_rgba(245,158,11,0.15)]'
                         }`}
                       >
                         <div className="relative">
-                          <FileText size={28} className={c.licencia_documento_url ? 'text-status-warning group-hover/doc:scale-110 transition-transform' : 'text-text-muted'} />
+                          <FileText size={28} className={!c.licencia_documento_url ? 'text-text-muted' : isLicenciaValid ? 'text-status-success' : 'text-status-warning group-hover/doc:scale-110 transition-transform'} />
                           <div className="absolute -top-1 -right-2">
-                            {c.licencia_documento_url ? (
-                              <Clock size={12} className="text-status-warning" />
-                            ) : (
-                              <X size={12} className="text-text-muted" />
-                            )}
+                            {c.licencia_documento_url && (isLicenciaValid ? <Check size={12} className="text-status-success" /> : <Clock size={12} className="text-status-warning" />)}
                           </div>
                         </div>
                         <span className="text-xs font-bold text-text-main">Licencia</span>
                         <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                          c.licencia_documento_url
-                            ? 'bg-status-warning/20 text-status-warning'
-                            : 'bg-border/50 text-text-muted'
+                          !c.licencia_documento_url ? 'bg-border/50 text-text-muted' :
+                          isLicenciaValid ? 'bg-status-success/20 text-status-success' : 'bg-status-warning/20 text-status-warning'
                         }`}>
-                          {c.licencia_documento_url ? '⏳ Pendiente' : 'No subida'}
+                          {!c.licencia_documento_url ? 'No subida' : isLicenciaValid ? 'Verificado' : '⏳ Pendiente'}
                         </span>
                         {c.licencia_documento_url && (
                           <span className="text-[10px] text-primary flex items-center gap-1 mt-1 opacity-0 group-hover/doc:opacity-100 transition-opacity">
@@ -282,7 +289,7 @@ export const Cisterneros = () => {
                 </button>
               </div>
             </article>
-          ))}
+          )})}
         </div>
       )}
 
@@ -326,31 +333,33 @@ export const Cisterneros = () => {
       )}
 
       {/* Modal de Previsualización de Documento */}
-      <Modal isOpen={docPreview.isOpen} onClose={() => setDocPreview({ isOpen: false, url: null, title: '' })} title={docPreview.title} maxWidth="max-w-3xl">
+      <Modal isOpen={docPreview.isOpen} onClose={() => setDocPreview({ isOpen: false, url: null, title: '', id: null, type: null })} title={docPreview.title} maxWidth="max-w-3xl">
         <div className="flex flex-col items-center gap-4">
           {docPreview.url && (
             docPreview.url.toLowerCase().endsWith('.pdf') ? (
-              <iframe src={docPreview.url} className="w-full h-[70vh] rounded-xl border border-border" title={docPreview.title} />
+              <iframe src={docPreview.url} className="w-full h-[70vh] rounded-xl border border-border bg-background-card" title={docPreview.title} />
             ) : (
-              <div className="w-full rounded-xl overflow-hidden border border-border bg-background/50">
+              <div className="w-full rounded-xl overflow-hidden border border-border bg-background/50 flex items-center justify-center min-h-[300px]">
                 <img
                   src={docPreview.url}
                   alt={docPreview.title}
                   className="w-full h-auto max-h-[70vh] object-contain"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = 'https://placehold.co/600x400/1e293b/94a3b8?text=Imagen+No+Disponible\n(Verifique+permisos+del+bucket)';
+                  }}
                 />
               </div>
             )
           )}
           <div className="flex gap-3 w-full justify-end pt-2 border-t border-border/50">
-            <a
-              href={docPreview.url}
-              target="_blank"
-              rel="noreferrer"
-              className="px-4 py-2 rounded-lg border border-primary text-primary text-sm font-semibold hover:bg-primary/10 transition-colors flex items-center gap-2"
+            <button
+              onClick={markAsValidated}
+              className="px-6 py-2 rounded-lg bg-status-success text-white text-sm font-semibold hover:bg-status-success/90 transition-colors flex items-center gap-2 shadow-[0_0_15px_rgba(16,185,129,0.3)] ambient-glow"
             >
-              <Eye size={14} /> Abrir en nueva pestaña
-            </a>
-            <Button variant="outline" onClick={() => setDocPreview({ isOpen: false, url: null, title: '' })}>
+              <Check size={18} /> Marcar como Validado
+            </button>
+            <Button variant="outline" onClick={() => setDocPreview({ isOpen: false, url: null, title: '', id: null, type: null })}>
               Cerrar
             </Button>
           </div>
