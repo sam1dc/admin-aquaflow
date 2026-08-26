@@ -9,6 +9,32 @@ import { ConfirmModal } from '../components/ui/ConfirmModal';
 const PAGE_SIZE_OPTIONS = [10, 15, 20, 25];
 import api from '../api/client';
 
+const ImagePreview = ({ file }) => {
+  if (!file) return null;
+  const isImage = file.type.startsWith('image/');
+  
+  if (isImage) {
+    const url = URL.createObjectURL(file);
+    return (
+      <div className="mt-3 relative rounded-xl overflow-hidden border border-border h-48 w-full flex items-center justify-center bg-background/50 group">
+        <img src={url} alt="Preview" className="object-cover h-full w-full opacity-90 transition-opacity group-hover:opacity-100" />
+      </div>
+    );
+  }
+  
+  return (
+    <div className="mt-3 p-4 rounded-xl border border-border bg-background/50 flex items-center gap-3 text-primary">
+      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+        <ExternalLink size={20} />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold truncate text-text-main">{file.name}</p>
+        <p className="text-xs text-text-muted">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+      </div>
+    </div>
+  );
+};
+
 const rolVariant = {
   'cliente': 'info',
   'cisternero': 'primary',
@@ -504,166 +530,189 @@ export const Usuarios = () => {
       />
 
       {/* Modal Nuevo Usuario */}
-      <Modal isOpen={showNewUserModal} onClose={() => setShowNewUserModal(false)} title="Registrar Nuevo Usuario">
-        <form onSubmit={handleCreateUser} className="flex flex-col gap-4 mt-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-semibold text-text-muted">Rol del Usuario</label>
-              <select
-                value={newUserForm.rol}
-                onChange={(e) => setNewUserForm({ ...newUserForm, rol: e.target.value })}
-                className="px-4 py-2 rounded-xl bg-background-card border border-border text-text-main focus:border-primary outline-none"
-              >
-                <option value="cliente">Cliente</option>
-                <option value="cisternero">Conductor</option>
-                <option value="administrador">Administrador</option>
-                <option value="soporte">Soporte</option>
-              </select>
+      <Modal isOpen={showNewUserModal} onClose={() => setShowNewUserModal(false)} title="Registrar Nuevo Usuario" maxWidth="max-w-4xl">
+        <form onSubmit={handleCreateUser} className="flex flex-col gap-6 mt-4">
+          
+          <div className="bg-background/30 p-5 rounded-2xl border border-border/50">
+            <h4 className="text-base font-bold text-primary mb-4 flex items-center gap-2">
+              <User size={18} /> Datos Principales
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-semibold text-text-muted">Rol del Usuario</label>
+                <select
+                  value={newUserForm.rol}
+                  onChange={(e) => setNewUserForm({ ...newUserForm, rol: e.target.value })}
+                  className="px-4 py-2.5 rounded-xl bg-background-card border border-border text-text-main focus:border-primary outline-none transition-colors"
+                >
+                  <option value="cliente">Cliente</option>
+                  <option value="cisternero">Conductor</option>
+                  <option value="administrador">Administrador</option>
+                  <option value="soporte">Soporte</option>
+                </select>
+              </div>
+              <div className="flex flex-col gap-1 md:col-span-2">
+                <label className="text-sm font-semibold text-text-muted">Nombre Completo</label>
+                <input
+                  type="text" required
+                  value={newUserForm.nombre}
+                  onChange={(e) => setNewUserForm({ ...newUserForm, nombre: e.target.value })}
+                  className="px-4 py-2.5 rounded-xl bg-background-card border border-border text-text-main focus:border-primary outline-none transition-colors"
+                  placeholder="Ej. Juan Pérez"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-semibold text-text-muted">Correo Electrónico</label>
+                <input
+                  type="email" required
+                  value={newUserForm.email}
+                  onChange={(e) => setNewUserForm({ ...newUserForm, email: e.target.value })}
+                  className="px-4 py-2.5 rounded-xl bg-background-card border border-border text-text-main focus:border-primary outline-none transition-colors"
+                  placeholder="correo@ejemplo.com"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-semibold text-text-muted">Teléfono</label>
+                <input
+                  type="tel" required
+                  value={newUserForm.telefono}
+                  onChange={(e) => setNewUserForm({ ...newUserForm, telefono: e.target.value })}
+                  className="px-4 py-2.5 rounded-xl bg-background-card border border-border text-text-main focus:border-primary outline-none transition-colors"
+                  placeholder="Ej. 04141234567"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-semibold text-text-muted">Contraseña Temporal</label>
+                <input
+                  type="password" required minLength="6"
+                  value={newUserForm.password}
+                  onChange={(e) => setNewUserForm({ ...newUserForm, password: e.target.value })}
+                  className="px-4 py-2.5 rounded-xl bg-background-card border border-border text-text-main focus:border-primary outline-none transition-colors"
+                  placeholder="Mínimo 6 caracteres"
+                />
+              </div>
             </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-semibold text-text-muted">Nombre Completo</label>
-              <input
-                type="text" required
-                value={newUserForm.nombre}
-                onChange={(e) => setNewUserForm({ ...newUserForm, nombre: e.target.value })}
-                className="px-4 py-2 rounded-xl bg-background-card border border-border text-text-main focus:border-primary outline-none"
-                placeholder="Ej. Juan Pérez"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-semibold text-text-muted">Correo Electrónico</label>
-              <input
-                type="email" required
-                value={newUserForm.email}
-                onChange={(e) => setNewUserForm({ ...newUserForm, email: e.target.value })}
-                className="px-4 py-2 rounded-xl bg-background-card border border-border text-text-main focus:border-primary outline-none"
-                placeholder="correo@ejemplo.com"
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-semibold text-text-muted">Teléfono</label>
-              <input
-                type="tel" required
-                value={newUserForm.telefono}
-                onChange={(e) => setNewUserForm({ ...newUserForm, telefono: e.target.value })}
-                className="px-4 py-2 rounded-xl bg-background-card border border-border text-text-main focus:border-primary outline-none"
-                placeholder="Ej. 04141234567"
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-semibold text-text-muted">Contraseña Temporal</label>
-            <input
-              type="password" required minLength="6"
-              value={newUserForm.password}
-              onChange={(e) => setNewUserForm({ ...newUserForm, password: e.target.value })}
-              className="px-4 py-2 rounded-xl bg-background-card border border-border text-text-main focus:border-primary outline-none"
-              placeholder="Mínimo 6 caracteres"
-            />
           </div>
 
           {/* Campos Dinámicos */}
           {newUserForm.rol === 'cliente' && (
-            <div className="flex flex-col gap-1 pt-2 border-t border-border/50">
-              <label className="text-sm font-semibold text-text-muted">RIF / Cédula de Identidad <span className="text-status-error">*</span></label>
-              <input
-                type="text" required
-                value={newUserForm.identificacion_fiscal}
-                onChange={(e) => setNewUserForm({ ...newUserForm, identificacion_fiscal: e.target.value })}
-                className="px-4 py-2 rounded-xl bg-background-card border border-border text-text-main focus:border-primary outline-none"
-                placeholder="Ej. J-123456789"
-              />
+            <div className="bg-primary/5 p-5 rounded-2xl border border-primary/20 animate-fade-in">
+              <h4 className="text-base font-bold text-primary mb-4">Información Fiscal</h4>
+              <div className="flex flex-col gap-1 max-w-md">
+                <label className="text-sm font-semibold text-text-muted">RIF / Cédula de Identidad <span className="text-status-error">*</span></label>
+                <input
+                  type="text" required
+                  value={newUserForm.identificacion_fiscal}
+                  onChange={(e) => setNewUserForm({ ...newUserForm, identificacion_fiscal: e.target.value })}
+                  className="px-4 py-2.5 rounded-xl bg-background-card border border-border text-text-main focus:border-primary outline-none transition-colors"
+                  placeholder="Ej. J-123456789"
+                />
+              </div>
             </div>
           )}
 
           {newUserForm.rol === 'cisternero' && (
-            <div className="flex flex-col gap-4 pt-2 border-t border-border/50">
-              <h4 className="text-sm font-bold text-primary">Datos del Conductor y Vehículo</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1">
-                  <label className="text-sm font-semibold text-text-muted">RIF Personal <span className="text-status-error">*</span></label>
-                  <input
-                    type="text" required
-                    value={newUserForm.rif_personal}
-                    onChange={(e) => setNewUserForm({ ...newUserForm, rif_personal: e.target.value })}
-                    className="px-4 py-2 rounded-xl bg-background-card border border-border text-text-main focus:border-primary outline-none"
-                  />
+            <div className="bg-status-warning/5 p-5 rounded-2xl border border-status-warning/20 animate-fade-in">
+              <h4 className="text-base font-bold text-status-warning mb-4 flex items-center gap-2">
+                <Truck size={18} /> Datos del Conductor y Vehículo
+              </h4>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Lado Izquierdo: Formularios de Texto */}
+                <div className="flex flex-col gap-5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-sm font-semibold text-text-muted">RIF Personal <span className="text-status-error">*</span></label>
+                      <input
+                        type="text" required
+                        value={newUserForm.rif_personal}
+                        onChange={(e) => setNewUserForm({ ...newUserForm, rif_personal: e.target.value })}
+                        className="px-4 py-2.5 rounded-xl bg-background-card border border-border text-text-main focus:border-status-warning outline-none transition-colors"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-sm font-semibold text-text-muted">Licencia de Conducir <span className="text-status-error">*</span></label>
+                      <input
+                        type="text" required
+                        value={newUserForm.licencia_conducir}
+                        onChange={(e) => setNewUserForm({ ...newUserForm, licencia_conducir: e.target.value })}
+                        className="px-4 py-2.5 rounded-xl bg-background-card border border-border text-text-main focus:border-status-warning outline-none transition-colors"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 rounded-xl border border-border/50 bg-background/50">
+                    <h5 className="text-sm font-bold text-text-main mb-3">Especificaciones del Camión</h5>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-sm font-semibold text-text-muted">Marca <span className="text-status-error">*</span></label>
+                        <input
+                          type="text" required
+                          value={newUserForm.vehiculo.marca}
+                          onChange={(e) => setNewUserForm({ ...newUserForm, vehiculo: { ...newUserForm.vehiculo, marca: e.target.value } })}
+                          className="px-4 py-2.5 rounded-xl bg-background-card border border-border text-text-main focus:border-status-warning outline-none transition-colors"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-sm font-semibold text-text-muted">Modelo <span className="text-status-error">*</span></label>
+                        <input
+                          type="text" required
+                          value={newUserForm.vehiculo.modelo}
+                          onChange={(e) => setNewUserForm({ ...newUserForm, vehiculo: { ...newUserForm.vehiculo, modelo: e.target.value } })}
+                          className="px-4 py-2.5 rounded-xl bg-background-card border border-border text-text-main focus:border-status-warning outline-none transition-colors"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-sm font-semibold text-text-muted">Placa <span className="text-status-error">*</span></label>
+                        <input
+                          type="text" required
+                          value={newUserForm.vehiculo.placa}
+                          onChange={(e) => setNewUserForm({ ...newUserForm, vehiculo: { ...newUserForm.vehiculo, placa: e.target.value } })}
+                          className="px-4 py-2.5 rounded-xl bg-background-card border border-border text-text-main focus:border-status-warning outline-none transition-colors uppercase"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-sm font-semibold text-text-muted">Capacidad (Lts) <span className="text-status-error">*</span></label>
+                        <input
+                          type="number" required min="1"
+                          value={newUserForm.vehiculo.capacidad_tanque}
+                          onChange={(e) => setNewUserForm({ ...newUserForm, vehiculo: { ...newUserForm.vehiculo, capacidad_tanque: e.target.value } })}
+                          className="px-4 py-2.5 rounded-xl bg-background-card border border-border text-text-main focus:border-status-warning outline-none transition-colors"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-sm font-semibold text-text-muted">Licencia de Conducir <span className="text-status-error">*</span></label>
-                  <input
-                    type="text" required
-                    value={newUserForm.licencia_conducir}
-                    onChange={(e) => setNewUserForm({ ...newUserForm, licencia_conducir: e.target.value })}
-                    className="px-4 py-2 rounded-xl bg-background-card border border-border text-text-main focus:border-primary outline-none"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="flex flex-col gap-1">
-                  <label className="text-sm font-semibold text-text-muted">Marca <span className="text-status-error">*</span></label>
-                  <input
-                    type="text" required
-                    value={newUserForm.vehiculo.marca}
-                    onChange={(e) => setNewUserForm({ ...newUserForm, vehiculo: { ...newUserForm.vehiculo, marca: e.target.value } })}
-                    className="px-4 py-2 rounded-xl bg-background-card border border-border text-text-main focus:border-primary outline-none"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-sm font-semibold text-text-muted">Modelo <span className="text-status-error">*</span></label>
-                  <input
-                    type="text" required
-                    value={newUserForm.vehiculo.modelo}
-                    onChange={(e) => setNewUserForm({ ...newUserForm, vehiculo: { ...newUserForm.vehiculo, modelo: e.target.value } })}
-                    className="px-4 py-2 rounded-xl bg-background-card border border-border text-text-main focus:border-primary outline-none"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-sm font-semibold text-text-muted">Placa <span className="text-status-error">*</span></label>
-                  <input
-                    type="text" required
-                    value={newUserForm.vehiculo.placa}
-                    onChange={(e) => setNewUserForm({ ...newUserForm, vehiculo: { ...newUserForm.vehiculo, placa: e.target.value } })}
-                    className="px-4 py-2 rounded-xl bg-background-card border border-border text-text-main focus:border-primary outline-none"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-sm font-semibold text-text-muted">Capacidad (L) <span className="text-status-error">*</span></label>
-                  <input
-                    type="number" required min="1"
-                    value={newUserForm.vehiculo.capacidad_tanque}
-                    onChange={(e) => setNewUserForm({ ...newUserForm, vehiculo: { ...newUserForm.vehiculo, capacidad_tanque: e.target.value } })}
-                    className="px-4 py-2 rounded-xl bg-background-card border border-border text-text-main focus:border-primary outline-none"
-                  />
-                </div>
-              </div>
-              <h4 className="text-sm font-bold text-primary mt-4">Documentos Adjuntos</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1">
-                  <label className="text-sm font-semibold text-text-muted">Cédula / Documento de Identidad (JPG/PDF) <span className="text-status-error">*</span></label>
-                  <input
-                    type="file" required accept=".jpg,.jpeg,.png,.pdf"
-                    onChange={(e) => setNewUserForm({ ...newUserForm, documento_identidad: e.target.files[0] })}
-                    className="px-4 py-2 rounded-xl bg-background-card border border-border text-text-main focus:border-primary outline-none file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-sm font-semibold text-text-muted">Licencia de Conducir (JPG/PDF) <span className="text-status-error">*</span></label>
-                  <input
-                    type="file" required accept=".jpg,.jpeg,.png,.pdf"
-                    onChange={(e) => setNewUserForm({ ...newUserForm, licencia_documento: e.target.files[0] })}
-                    className="px-4 py-2 rounded-xl bg-background-card border border-border text-text-main focus:border-primary outline-none file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
-                  />
+
+                {/* Lado Derecho: Archivos y Previews */}
+                <div className="flex flex-col gap-5">
+                  <div className="flex flex-col gap-1 bg-background-card p-4 rounded-xl border border-border">
+                    <label className="text-sm font-bold text-text-main">Foto de Cédula / Identidad <span className="text-status-error">*</span></label>
+                    <p className="text-xs text-text-muted mb-2">Sube una foto clara del documento, en formato JPG, PNG o PDF.</p>
+                    <input
+                      type="file" required accept=".jpg,.jpeg,.png,.pdf"
+                      onChange={(e) => setNewUserForm({ ...newUserForm, documento_identidad: e.target.files[0] })}
+                      className="text-sm text-text-muted file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-status-warning/10 file:text-status-warning hover:file:bg-status-warning/20 transition-colors cursor-pointer"
+                    />
+                    <ImagePreview file={newUserForm.documento_identidad} />
+                  </div>
+                  
+                  <div className="flex flex-col gap-1 bg-background-card p-4 rounded-xl border border-border">
+                    <label className="text-sm font-bold text-text-main">Foto de Licencia de Conducir <span className="text-status-error">*</span></label>
+                    <p className="text-xs text-text-muted mb-2">Debe estar vigente y ser legible.</p>
+                    <input
+                      type="file" required accept=".jpg,.jpeg,.png,.pdf"
+                      onChange={(e) => setNewUserForm({ ...newUserForm, licencia_documento: e.target.files[0] })}
+                      className="text-sm text-text-muted file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-status-warning/10 file:text-status-warning hover:file:bg-status-warning/20 transition-colors cursor-pointer"
+                    />
+                    <ImagePreview file={newUserForm.licencia_documento} />
+                  </div>
                 </div>
               </div>
             </div>
           )}
 
-          <div className="flex justify-end gap-3 mt-4">
+          <div className="flex justify-end gap-3 mt-2 pt-6 border-t border-border/50">
             <Button type="button" variant="outline" onClick={() => setShowNewUserModal(false)}>
               Cancelar
             </Button>
