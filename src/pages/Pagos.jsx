@@ -6,6 +6,8 @@ import { CreditCard, Check, X, Eye, Smartphone, DollarSign, Wallet, FileText, Ch
 import { Modal } from '../components/ui/Modal';
 import api from '../api/client';
 
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25];
+
 const metodoConfig = {
   'Pago Movil': { icon: Smartphone, color: 'text-primary' },
   'Zelle': { icon: DollarSign, color: 'text-status-success' },
@@ -37,15 +39,25 @@ export const Pagos = () => {
     }, 4500);
   };
 
-  const fetchPagos = async () => {
+  const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 10, totalPages: 1 });
+  const [pageSize, setPageSize] = useState(10);
+
+  const fetchPagos = async (page = 1, size = pageSize, activeTab = tab) => {
     try {
       setLoading(true);
-      const [pendientesRes, historialRes] = await Promise.all([
-        api.get('/admin/pagos/pendientes'),
-        api.get('/admin/pagos'),
-      ]);
-      setPagosPendientes(pendientesRes.data.data || []);
-      setPagosHistorial(historialRes.data.data || []);
+      const params = new URLSearchParams();
+      params.append('page', String(page));
+      params.append('limit', String(size));
+      
+      if (activeTab === 'pendientes') {
+        const res = await api.get(`/admin/pagos/pendientes?${params.toString()}`);
+        setPagosPendientes(res.data.data || []);
+        setPagination(res.data.pagination || { total: res.data.data?.length || 0, page: 1, limit: size, totalPages: 1 });
+      } else {
+        const res = await api.get(`/admin/pagos?${params.toString()}`);
+        setPagosHistorial(res.data.data || []);
+        setPagination(res.data.pagination || { total: res.data.data?.length || 0, page: 1, limit: size, totalPages: 1 });
+      }
     } catch (error) {
       console.error("Error fetching pagos:", error);
     } finally {
@@ -54,8 +66,22 @@ export const Pagos = () => {
   };
 
   useEffect(() => {
-    fetchPagos();
-  }, []);
+    fetchPagos(1, pageSize, tab);
+  }, [tab]);
+
+  const handlePrevPage = () => {
+    if (pagination.page > 1) fetchPagos(pagination.page - 1, pageSize, tab);
+  };
+
+  const handleNextPage = () => {
+    if (pagination.page < pagination.totalPages) fetchPagos(pagination.page + 1, pageSize, tab);
+  };
+
+  const handlePageSizeChange = (e) => {
+    const newSize = Number(e.target.value);
+    setPageSize(newSize);
+    fetchPagos(1, newSize, tab);
+  };
 
   const handleVerify = async (id_pago, verificado, motivo = undefined) => {
     try {

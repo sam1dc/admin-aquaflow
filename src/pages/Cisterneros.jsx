@@ -2,9 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
-import { Modal } from '../components/ui/Modal';
 import { Check, X, User, Truck, Phone, Mail, Calendar, FileText, Badge as BadgeIcon, AlertCircle } from 'lucide-react';
 import api from '../api/client';
+
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25];
 
 export const Cisterneros = () => {
   const [cisterneros, setCisterneros] = useState([]);
@@ -13,11 +14,22 @@ export const Cisterneros = () => {
   const [rejectModal, setRejectModal] = useState({ isOpen: false, id: null });
   const [motivoRechazo, setMotivoRechazo] = useState('');
 
-  const fetchCisterneros = async () => {
+  const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 10, totalPages: 1 });
+  const [pageSize, setPageSize] = useState(10);
+
+  const fetchCisterneros = async (page = 1, size = pageSize) => {
     try {
       setLoading(true);
-      const res = await api.get('/admin/cisterneros/pendientes');
+      const params = new URLSearchParams();
+      params.append('page', String(page));
+      params.append('limit', String(size));
+      const res = await api.get(`/admin/cisterneros/pendientes?${params.toString()}`);
       setCisterneros(res.data.data || []);
+      if (res.data.pagination) {
+        setPagination(res.data.pagination);
+      } else {
+        setPagination({ total: res.data.data?.length || 0, page: 1, limit: size, totalPages: 1 });
+      }
     } catch (error) {
       console.error("Error fetching cisterneros:", error);
     } finally {
@@ -26,8 +38,22 @@ export const Cisterneros = () => {
   };
 
   useEffect(() => {
-    fetchCisterneros();
+    fetchCisterneros(1, pageSize);
   }, []);
+
+  const handlePrevPage = () => {
+    if (pagination.page > 1) fetchCisterneros(pagination.page - 1, pageSize);
+  };
+
+  const handleNextPage = () => {
+    if (pagination.page < pagination.totalPages) fetchCisterneros(pagination.page + 1, pageSize);
+  };
+
+  const handlePageSizeChange = (e) => {
+    const newSize = Number(e.target.value);
+    setPageSize(newSize);
+    fetchCisterneros(1, newSize);
+  };
 
   const handleValidation = async (id, aprobado, motivo = undefined) => {
     try {
@@ -45,8 +71,12 @@ export const Cisterneros = () => {
         setRejectModal({ isOpen: false, id: null });
         setMotivoRechazo('');
       }
+
+      await api.patch(`/admin/cisterneros/${id}/validar`, { aprobado, motivo_rechazo });
+      setCisterneros(prev => prev.filter(c => c.id_cisternero !== id));
+
     } catch (error) {
-      alert(`Error: ${error.response?.data?.error || error.message}`);
+      toast.error(`Error: ${error.response?.data?.error || error.message}`);
     } finally {
       setActionLoading(null);
     }
@@ -178,33 +208,6 @@ export const Cisterneros = () => {
           ))}
         </div>
       )}
-
-      {/* Modal para Rechazar Conductor */}
-      <Modal
-        isOpen={rejectModal.isOpen}
-        onClose={() => setRejectModal({ isOpen: false, id: null })}
-        title="Rechazar solicitud del conductor"
-      >
-        <div className="flex flex-col gap-4 mt-4">
-          <textarea
-            value={motivoRechazo}
-            onChange={(e) => setMotivoRechazo(e.target.value)}
-            placeholder="Motivo del rechazo..."
-            className="w-full bg-background/50 border border-border rounded-xl p-3 text-sm text-text-main resize-none focus:border-status-error focus:ring-1 focus:ring-status-error outline-none"
-            rows={4}
-          />
-          <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-border/50">
-            <Button variant="secondary" onClick={() => setRejectModal({ isOpen: false, id: null })}>Cancelar</Button>
-            <Button
-              className="bg-status-error text-white hover:bg-status-error/80 transition-all rounded-lg cursor-pointer"
-              onClick={() => handleValidation(rejectModal.id, false, motivoRechazo)}
-              disabled={!motivoRechazo.trim() || actionLoading === rejectModal.id}
-            >
-              Confirmar rechazo
-            </Button>
-          </div>
-        </div>
-      </Modal>
     </div>
   );
 };
