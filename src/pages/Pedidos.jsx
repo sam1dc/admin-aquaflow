@@ -237,9 +237,19 @@ export const Pedidos = () => {
                       <p className="text-lg font-bold text-primary">${Number(p.monto_total).toFixed(2)}</p>
                     </div>
                     <div className="flex gap-2">
-                      <estadoInfo.icon size={20} className={estadoInfo.color} title={p.estado_actual} />
-                      {tienePagos && <CheckCircle2 size={20} className="text-status-success" title="Pago Registrado" />}
-                      {tieneIncidencias && <AlertTriangle size={20} className="text-status-error" title="Incidencia Reportada" />}
+                      <span title={`Estado actual: ${p.estado_actual}`} className="inline-flex cursor-help">
+                        <estadoInfo.icon size={20} className={estadoInfo.color} />
+                      </span>
+                      {tienePagos && (
+                        <span title="Pago Registrado" className="inline-flex cursor-help">
+                          <CheckCircle2 size={20} className="text-status-success" />
+                        </span>
+                      )}
+                      {tieneIncidencias && (
+                        <span title="Incidencia Reportada" className="inline-flex cursor-help">
+                          <AlertTriangle size={20} className="text-status-error" />
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -249,7 +259,7 @@ export const Pedidos = () => {
                   <div className="p-6 bg-background/30 grid grid-cols-1 md:grid-cols-4 gap-6">
                     {/* Cliente & Asignación */}
                     <div className="space-y-4">
-                      <h4 className="text-xs text-text-muted uppercase tracking-wider font-semibold">Cliente & Asignación</h4>
+                      <h4 className="text-xs text-text-muted uppercase tracking-wider font-semibold">Datos del Conductor</h4>
                       <div className="space-y-3">
                         <p className="text-sm text-text-main flex items-center gap-2">
                           <Phone size={14} className="text-text-muted" /> {cliente?.telefono || 'N/A'}
@@ -303,17 +313,7 @@ export const Pedidos = () => {
                           </div>
                         </div>
                         <div className="ml-9 border-t border-border/50 pt-2 mt-2">
-                          <p className="text-xs text-text-muted">
-                            {p.estados_log && p.estados_log.length > 0 ? (
-                              <span className="flex flex-col gap-1">
-                                <span className="font-semibold">Última actualización de ruta:</span>
-                                <span>{p.estados_log[p.estados_log.length - 1].estado} el {formatShortDate(p.estados_log[p.estados_log.length - 1].timestamp)}</span>
-                              </span>
-                            ) : (
-                              'A la espera de salida.'
-                            )}
-                          </p>
-                          <div className="mt-3">
+                          <div className="mt-1">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -395,16 +395,21 @@ export const Pedidos = () => {
             </div>
           ) : (
             <div className="relative border-l-2 border-primary/30 ml-3 space-y-6 py-2">
-              {historialModal.pedido.estados_log.map((log, index) => (
-                <div key={index} className="relative pl-6">
-                  <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-background border-2 border-primary"></div>
-                  <div className="bg-background-card border border-border p-3 rounded-lg shadow-sm">
-                    <p className="text-sm font-bold text-text-main">{log.estado}</p>
-                    <p className="text-xs text-text-muted mt-1">{formatDate(log.timestamp)}</p>
-                    {log.nota && <p className="text-xs text-text-main mt-2 bg-background/50 p-2 rounded">{log.nota}</p>}
-                  </div>
-                </div>
-              ))}
+              {[...historialModal.pedido.estados_log]
+                .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+                .map((log, index) => {
+                  const logEstadoInfo = getEstadoInfo(log.estado);
+                  return (
+                    <div key={index} className="relative pl-6">
+                      <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-background border-2" style={{ borderColor: logEstadoInfo.hex }}></div>
+                      <div className="bg-background-card border border-border p-3 rounded-lg shadow-sm">
+                        <p className="text-sm font-bold text-text-main" style={{ color: logEstadoInfo.hex }}>{log.estado}</p>
+                        <p className="text-xs text-text-muted mt-1">{formatDate(log.timestamp)}</p>
+                        {log.nota && <p className="text-xs text-text-main mt-2 bg-background/50 p-2 rounded">{log.nota}</p>}
+                      </div>
+                    </div>
+                  );
+                })}
             </div>
           )}
           

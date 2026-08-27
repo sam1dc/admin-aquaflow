@@ -21,6 +21,7 @@ export const Promociones = () => {
     limite_usos: '',
   });
   const [submitting, setSubmitting] = useState(false);
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null });
 
   const fetchPromos = async () => {
     try {
@@ -63,12 +64,16 @@ export const Promociones = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id_promocion) => {
-    if (!window.confirm('¿Estás seguro de que deseas eliminar esta promoción?')) return;
+  const handleDelete = async (id_promocion, confirmed = false) => {
+    if (!confirmed) {
+      setDeleteModal({ isOpen: true, id: id_promocion });
+      return;
+    }
     try {
       const res = await api.delete(`/admin/promociones/${id_promocion}`);
       alert(res.data?.message || 'Promoción eliminada');
       fetchPromos();
+      setDeleteModal({ isOpen: false, id: null });
     } catch (error) {
       alert(`Error: ${error.response?.data?.error || error.message}`);
     }
@@ -144,7 +149,7 @@ export const Promociones = () => {
           <div className="text-4xl font-bold text-text-main group-hover:text-primary transition-colors">{stats.totalPromos}</div>
           <div className="text-sm text-text-muted mt-1 font-medium">Promociones Registradas</div>
         </div>
-        
+
         <div className="glass-card rounded-xl p-6 hover:border-status-success/50 transition-colors group">
           <div className="flex justify-between items-start mb-4">
             <div className="p-3 bg-status-success/10 rounded-xl text-status-success">
@@ -155,7 +160,7 @@ export const Promociones = () => {
           <div className="text-4xl font-bold text-text-main group-hover:text-status-success transition-colors">{stats.activas}</div>
           <div className="text-sm text-text-muted mt-1 font-medium">Campañas en Curso</div>
         </div>
-        
+
         <div className="glass-card rounded-xl p-6 hover:border-status-location/50 transition-colors group">
           <div className="flex justify-between items-start mb-4">
             <div className="p-3 bg-status-location/10 rounded-xl text-status-location">
@@ -205,7 +210,7 @@ export const Promociones = () => {
                   const usos = p._count?.usos || 0;
                   const porcentajeUso = p.limite_usos > 0 ? Math.min((usos / p.limite_usos) * 100, 100) : 0;
                   const isExhausted = usos >= p.limite_usos;
-                  
+
                   return (
                     <tr key={p.id_promocion} className={`border-b border-border/30 hover:bg-white/5 transition-colors ${!activa ? 'opacity-70' : ''}`}>
                       <td className="p-4">
@@ -228,8 +233,8 @@ export const Promociones = () => {
                       <td className="p-4">
                         <div className="flex items-center gap-2">
                           <div className="w-16 h-1.5 bg-background rounded-full overflow-hidden border border-border">
-                            <div 
-                              className={`h-full ${isExhausted ? 'bg-status-error' : 'bg-primary'}`} 
+                            <div
+                              className={`h-full ${isExhausted ? 'bg-status-error' : 'bg-primary'}`}
                               style={{ width: `${porcentajeUso}%` }}
                             ></div>
                           </div>
@@ -254,7 +259,7 @@ export const Promociones = () => {
                           <button onClick={() => handleOpenEdit(p)} className="p-2 text-text-muted hover:text-primary transition-colors" title="Editar">
                             <Pencil size={16} />
                           </button>
-                          <button onClick={() => handleDelete(p.id_promocion)} className="p-2 text-text-muted hover:text-status-error transition-colors" title="Eliminar">
+                          <button onClick={() => handleDelete(p.id_promocion)} className="p-2 text-text-muted hover:text-status-error transition-colors cursor-pointer" title="Eliminar">
                             <Trash2 size={16} />
                           </button>
                         </div>
@@ -297,9 +302,9 @@ export const Promociones = () => {
 
           <div className="col-span-1">
             <label className="block text-text-muted font-semibold mb-1">Tipo de Beneficio</label>
-            <select 
-              value={form.tipo} 
-              onChange={e => setForm({ ...form, tipo: e.target.value })} 
+            <select
+              value={form.tipo}
+              onChange={e => setForm({ ...form, tipo: e.target.value })}
               className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-text-main focus:border-primary/50 focus:ring-1 focus:ring-primary/50 outline-none"
             >
               <option value="Porcentaje">Porcentaje (%)</option>
@@ -355,15 +360,15 @@ export const Promociones = () => {
           </div>
 
           <div className="col-span-2 flex justify-end gap-3 mt-4 pt-4 border-t border-border/50">
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={() => setIsModalOpen(false)}
-              className="px-6 py-2.5 rounded-xl border border-border bg-background text-text-main font-semibold hover:bg-background-card transition-colors"
+              className="px-6 py-2.5 rounded-xl bg-slate-800 text-slate-300 font-semibold hover:bg-slate-700 transition-colors"
             >
               Cancelar
             </button>
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={submitting}
               className="px-6 py-2.5 rounded-xl bg-primary text-white font-semibold hover:shadow-glow hover:bg-primary-dark transition-all"
             >
@@ -371,6 +376,28 @@ export const Promociones = () => {
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* Modal para Eliminar Promoción */}
+      <Modal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, id: null })}
+        title="Eliminar Promoción"
+      >
+        <div className="flex flex-col gap-4 mt-4">
+          <p className="text-sm text-text-muted">
+            ¿Estás seguro de que deseas eliminar esta promoción? Esta acción no se puede deshacer.
+          </p>
+          <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-border/50">
+            <Button variant="secondary" onClick={() => setDeleteModal({ isOpen: false, id: null })}>Cancelar</Button>
+            <Button
+              variant="danger"
+              onClick={() => handleDelete(deleteModal.id, true)}
+            >
+              Eliminar
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

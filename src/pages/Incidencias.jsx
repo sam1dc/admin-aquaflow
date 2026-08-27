@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
-import { AlertTriangle, Check, Eye, User, Package, ExternalLink, ShieldAlert } from 'lucide-react';
+import { AlertTriangle, Check, Eye, User, Package, ExternalLink, ShieldAlert, X } from 'lucide-react';
 import api from '../api/client';
 
 const tipoVariant = {
@@ -49,6 +49,14 @@ export const Incidencias = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('Todas');
   const [actionLoading, setActionLoading] = useState(null);
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => {
+      setToast({ show: false, message: '', type: 'success' });
+    }, 4500);
+  };
 
   const fetchIncidencias = async () => {
     try {
@@ -70,10 +78,10 @@ export const Incidencias = () => {
     try {
       setActionLoading(id);
       const res = await api.patch(`/admin/incidencias/${id}/estado`, { estatus_gestion });
-      alert(res.data?.message || 'Incidencia actualizada');
+      showToast(res.data?.message || 'Incidencia actualizada', 'success');
       fetchIncidencias();
     } catch (error) {
-      alert(`Error: ${error.response?.data?.error || error.message}`);
+      showToast(`Error: ${error.response?.data?.error || error.message}`, 'error');
     } finally {
       setActionLoading(null);
     }
@@ -226,6 +234,27 @@ export const Incidencias = () => {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Toast Notificación Personalizada */}
+      {toast.show && (
+        <div className={`fixed bottom-6 right-6 z-50 animate-fade-in flex items-center gap-3 px-6 py-4 rounded-xl shadow-2xl border backdrop-blur-md ${
+          toast.type === 'error' ? 'bg-status-error/10 border-status-error/30 text-status-error' : 'bg-status-success/10 border-status-success/30 text-status-success'
+        }`}>
+          <div className={`p-2 rounded-full ${toast.type === 'error' ? 'bg-status-error/20' : 'bg-status-success/20'}`}>
+            {toast.type === 'error' ? <X size={20} /> : <Check size={20} />}
+          </div>
+          <div className="flex flex-col pr-4">
+            <span className="font-bold text-sm">{toast.type === 'error' ? 'Error' : 'Operación Exitosa'}</span>
+            <span className="text-sm opacity-90">{toast.message}</span>
+          </div>
+          <button 
+            onClick={() => setToast({ ...toast, show: false })}
+            className="absolute top-2 right-2 p-1 opacity-50 hover:opacity-100 transition-opacity rounded-full hover:bg-white/10"
+          >
+            <X size={14} />
+          </button>
         </div>
       )}
     </div>

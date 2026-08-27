@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
-import { Users as UsersIcon, User, Truck, Shield, CheckCircle2, MoreVertical, Star, Ban, Car, CreditCard, ExternalLink, AlertTriangle } from 'lucide-react';
+import { Users as UsersIcon, User, Truck, Shield, CheckCircle2, MoreVertical, Star, Ban, Car, CreditCard, ExternalLink, AlertTriangle, Pencil, Trash2 } from 'lucide-react';
 import api from '../api/client';
 
 const rolVariant = {
@@ -23,6 +23,10 @@ export const Usuarios = () => {
   const [filter, setFilter] = useState('Todos');
   const [actionLoading, setActionLoading] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [openDropdownId, setOpenDropdownId] = useState(null);
+  const [editModal, setEditModal] = useState({ isOpen: false, user: null });
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, user: null });
+  const [editForm, setEditForm] = useState({ nombre: '', email: '', telefono: '' });
 
   const fetchUsuarios = async () => {
     try {
@@ -38,6 +42,9 @@ export const Usuarios = () => {
 
   useEffect(() => {
     fetchUsuarios();
+    const handleClick = () => setOpenDropdownId(null);
+    window.addEventListener('click', handleClick);
+    return () => window.removeEventListener('click', handleClick);
   }, []);
 
   const getRol = (u) => {
@@ -48,7 +55,6 @@ export const Usuarios = () => {
   };
 
   const handleHabilitar = async (id_usuario) => {
-    if (!window.confirm('¿Estás seguro de que deseas habilitar esta cuenta?')) return;
     try {
       setActionLoading(id_usuario);
       const res = await api.patch(`/admin/usuarios/${id_usuario}/habilitar`);
@@ -62,15 +68,49 @@ export const Usuarios = () => {
     }
   };
 
+  const handleOpenEdit = (u) => {
+    setEditModal({ isOpen: true, user: u });
+    setEditForm({ nombre: u.nombre || '', email: u.email || '', telefono: u.telefono || u.phone || '' });
+    setOpenDropdownId(null);
+  };
+
+  const handleEditUser = async (e) => {
+    e.preventDefault();
+    if (!editModal.user) return;
+    try {
+      setActionLoading(editModal.user.id_usuario);
+      await api.put(`/admin/usuarios/${editModal.user.id_usuario}`, editForm);
+      setEditModal({ isOpen: false, user: null });
+      fetchUsuarios();
+    } catch (error) {
+      alert(`Error al editar usuario: ${error.response?.data?.error || error.message}`);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleDeleteUser = async (id_usuario) => {
+    try {
+      setActionLoading(id_usuario);
+      await api.delete(`/admin/usuarios/${id_usuario}`);
+      setDeleteModal({ isOpen: false, user: null });
+      fetchUsuarios();
+    } catch (error) {
+      alert(`Error al eliminar usuario: ${error.response?.data?.error || error.message}`);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const roles = ['Todos', 'Cliente', 'Conductor', 'Admin'];
   const filtered = filter === 'Todos'
     ? usuarios
     : usuarios.filter(u => {
-        const rol = getRol(u);
-        return (filter === 'Cliente' && rol === 'cliente') ||
-               (filter === 'Conductor' && rol === 'cisternero') ||
-               (filter === 'Admin' && rol === 'administrador');
-      });
+      const rol = getRol(u);
+      return (filter === 'Cliente' && rol === 'cliente') ||
+        (filter === 'Conductor' && rol === 'cisternero') ||
+        (filter === 'Admin' && rol === 'administrador');
+    });
 
   const getUserIcon = (rol) => {
     if (rol === 'cliente') return <User size={24} className="text-status-location" />;
@@ -101,11 +141,10 @@ export const Usuarios = () => {
               <button
                 key={rol}
                 onClick={() => setFilter(rol)}
-                className={`px-5 py-2 rounded-lg font-semibold text-sm transition-all whitespace-nowrap outline-none ${
-                  isActive
-                    ? 'bg-primary/20 text-primary border border-primary/30'
-                    : 'bg-transparent border border-transparent text-text-muted hover:text-text-main hover:bg-white/5'
-                }`}
+                className={`px-5 py-2 rounded-lg font-semibold text-sm transition-all whitespace-nowrap outline-none ${isActive
+                  ? 'bg-primary/20 text-primary border border-primary/30'
+                  : 'bg-transparent border border-transparent text-text-muted hover:text-text-main hover:bg-white/5'
+                  }`}
               >
                 {rol === 'Admin' ? 'Administradores' : rol === 'Cliente' ? 'Clientes' : rol === 'Conductor' ? 'Conductores' : 'Todos'}
               </button>
@@ -136,14 +175,14 @@ export const Usuarios = () => {
             const sancionesPendientes = (u.sanciones || []).filter(s => s.estado === 'Pendiente').length;
 
             return (
-              <div 
-                key={u.id_usuario} 
+              <div
+                key={u.id_usuario}
                 className={`glass-card rounded-xl p-6 flex flex-col gap-4 transition-all duration-300 group ${isBanned ? 'border-status-error/40 hover:border-status-error/60' : 'hover:border-primary/40 hover:shadow-glow'}`}
               >
                 {isBanned && (
                   <div className="absolute -right-4 -top-4 w-24 h-24 bg-status-error/10 blur-[30px] rounded-full pointer-events-none"></div>
                 )}
-                
+
                 <div className="flex justify-between items-center gap-2 relative z-10">
                   <div className="flex gap-3 items-center min-w-0 flex-1">
                     <div className="relative flex-shrink-0">
@@ -159,18 +198,17 @@ export const Usuarios = () => {
                       <p className="text-xs text-text-muted mt-1 truncate">{u.email}</p>
                     </div>
                   </div>
-                  
+
                   <div className="flex-shrink-0">
                     {isBanned ? (
                       <div className="bg-status-error/10 text-status-error border border-status-error/20 px-2 py-1 rounded text-[10px] font-bold tracking-wider uppercase flex items-center gap-1">
                         <Ban size={12} /> Suspendido
                       </div>
                     ) : (
-                      <div className={`border px-2 py-1 rounded text-[10px] font-bold tracking-wider uppercase whitespace-nowrap ${
-                        rol === 'cliente' ? 'bg-primary/10 text-primary border-primary/20' :
+                      <div className={`border px-2 py-1 rounded text-[10px] font-bold tracking-wider uppercase whitespace-nowrap ${rol === 'cliente' ? 'bg-primary/10 text-primary border-primary/20' :
                         rol === 'cisternero' ? 'bg-status-warning/10 text-status-warning border-status-warning/20' :
-                        'bg-status-location/10 text-status-location border-status-location/20'
-                      }`}>
+                          'bg-status-location/10 text-status-location border-status-location/20'
+                        }`}>
                         {rol === 'cisternero' ? 'conductor' : rol}
                       </div>
                     )}
@@ -232,15 +270,39 @@ export const Usuarios = () => {
                 </div>
 
                 <div className="flex items-center gap-3 mt-auto pt-4 relative z-10">
-                  <button 
+                  <button
                     onClick={() => setSelectedUser(u)}
                     className={`flex-1 bg-transparent border border-border py-2 rounded-lg transition-colors text-sm font-semibold flex justify-center items-center gap-2 ${isBanned ? 'hover:border-status-error/50 text-status-error hover:bg-status-error/10' : 'hover:border-primary hover:text-primary text-text-muted'}`}
                   >
                     {isBanned ? 'Gestionar Estado' : 'Ver Detalles'}
                   </button>
-                  <button className="w-10 h-10 flex items-center justify-center bg-transparent border border-border hover:bg-white/5 rounded-lg text-text-muted transition-colors">
-                    <MoreVertical size={18} />
-                  </button>
+                  <div className="relative">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setOpenDropdownId(openDropdownId === u.id_usuario ? null : u.id_usuario); }}
+                      className="w-10 h-10 flex items-center justify-center bg-transparent border border-border hover:bg-white/5 rounded-lg text-text-muted transition-colors"
+                    >
+                      <MoreVertical size={18} />
+                    </button>
+                    {openDropdownId === u.id_usuario && (
+                      <div
+                        className="absolute bottom-full right-0 mb-2 w-36 bg-background-card border border-border rounded-lg shadow-xl py-1 z-50 animate-fade-in"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <button
+                          onClick={() => handleOpenEdit(u)}
+                          className="w-full text-left px-4 py-2 text-sm text-text-main hover:bg-white/5 transition-colors flex items-center gap-2"
+                        >
+                          <Pencil size={14} /> Editar
+                        </button>
+                        <button
+                          onClick={() => { setDeleteModal({ isOpen: true, user: u }); setOpenDropdownId(null); }}
+                          className="w-full text-left px-4 py-2 text-sm text-status-error hover:bg-status-error/10 transition-colors flex items-center gap-2"
+                        >
+                          <Trash2 size={14} /> Eliminar
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             );
@@ -346,8 +408,8 @@ export const Usuarios = () => {
                 Cerrar
               </Button>
               {selectedUser.cuenta_inhabilitada && (
-                <Button 
-                  variant="success" 
+                <Button
+                  variant="success"
                   disabled={actionLoading === selectedUser.id_usuario}
                   onClick={() => handleHabilitar(selectedUser.id_usuario)}
                   className="flex items-center gap-2"
@@ -358,6 +420,64 @@ export const Usuarios = () => {
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* Modal Editar Usuario */}
+      <Modal isOpen={editModal.isOpen} onClose={() => setEditModal({ isOpen: false, user: null })} title="Editar Usuario">
+        <form onSubmit={handleEditUser} className="flex flex-col gap-4 mt-4">
+          <div className="space-y-1">
+            <label className="text-sm font-semibold text-text-muted">Nombre</label>
+            <input
+              type="text"
+              value={editForm.nombre}
+              onChange={e => setEditForm({ ...editForm, nombre: e.target.value })}
+              className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-text-main focus:border-primary/50 outline-none"
+              required
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm font-semibold text-text-muted">Email</label>
+            <input
+              type="email"
+              value={editForm.email}
+              onChange={e => setEditForm({ ...editForm, email: e.target.value })}
+              className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-text-main focus:border-primary/50 outline-none"
+              required
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm font-semibold text-text-muted">Teléfono</label>
+            <input
+              type="text"
+              value={editForm.telefono}
+              onChange={e => setEditForm({ ...editForm, telefono: e.target.value })}
+              className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-text-main focus:border-primary/50 outline-none"
+            />
+          </div>
+          <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-border/50">
+            <Button type="button" variant="secondary" onClick={() => setEditModal({ isOpen: false, user: null })}>Cancelar</Button>
+            <Button type="submit" disabled={actionLoading === editModal.user?.id_usuario}>Guardar Cambios</Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Modal Eliminar Usuario */}
+      <Modal isOpen={deleteModal.isOpen} onClose={() => setDeleteModal({ isOpen: false, user: null })} title="Eliminar Usuario">
+        <div className="flex flex-col gap-4 mt-4">
+          <p className="text-sm text-text-muted">
+            ¿Estás seguro de que deseas eliminar a <strong>{deleteModal.user?.nombre}</strong>? Esta acción no se puede deshacer.
+          </p>
+          <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-border/50">
+            <Button variant="secondary" onClick={() => setDeleteModal({ isOpen: false, user: null })}>Cancelar</Button>
+            <Button
+              variant="danger"
+              onClick={() => handleDeleteUser(deleteModal.user.id_usuario)}
+              disabled={actionLoading === deleteModal.user?.id_usuario}
+            >
+              Eliminar
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

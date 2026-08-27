@@ -16,6 +16,7 @@ export const Tarifas = () => {
   const [editingTarifa, setEditingTarifa] = useState(null);
   const [form, setForm] = useState({ volumen_litros: '', precio_base: '', activo: true });
   const [submitting, setSubmitting] = useState(false);
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null });
 
   const user = JSON.parse(localStorage.getItem('aquaflow_admin_user') || '{}');
   const id_admin = user.administrador?.id_admin || user.id_usuario;
@@ -52,16 +53,17 @@ export const Tarifas = () => {
 
   const handleOpenEdit = (tarifa) => {
     setEditingTarifa(tarifa);
-    setForm({ 
-      volumen_litros: tarifa.volumen_litros, 
-      precio_base: tarifa.precio_base, 
-      activo: tarifa.activo ?? true 
+    setForm({
+      volumen_litros: tarifa.volumen_litros,
+      precio_base: tarifa.precio_base,
+      activo: tarifa.activo ?? true
     });
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id_tarifa) => {
-    if (!window.confirm('¿Estás seguro de que deseas eliminar esta tarifa?')) {
+  const handleDelete = async (id_tarifa, confirmed = false) => {
+    if (!confirmed) {
+      setDeleteModal({ isOpen: true, id: id_tarifa });
       return;
     }
 
@@ -69,6 +71,7 @@ export const Tarifas = () => {
       const res = await api.delete(`/admin/tarifas/${id_tarifa}`);
       alert(res.data?.message || 'Tarifa eliminada exitosamente');
       fetchTarifas();
+      setDeleteModal({ isOpen: false, id: null });
     } catch (error) {
       alert(`Error al eliminar tarifa: ${error.response?.data?.error || error.message}`);
     }
@@ -102,8 +105,8 @@ export const Tarifas = () => {
     }
   };
 
-  const calculatedBs = (form.precio_base && bcvData.rate) 
-    ? (Number(form.precio_base) * bcvData.rate).toFixed(2) 
+  const calculatedBs = (form.precio_base && bcvData.rate)
+    ? (Number(form.precio_base) * bcvData.rate).toFixed(2)
     : '0.00';
 
   const getVolumeIcon = (volumen) => {
@@ -117,17 +120,17 @@ export const Tarifas = () => {
     <div className="animate-fade-in flex flex-col gap-8 pb-8">
       {/* Top Section: BCV & Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
+
         {/* BCV Live Rate Widget */}
         <div className="lg:col-span-4 glass-card rounded-xl p-6 flex flex-col justify-between relative overflow-hidden group hover:border-primary/50 transition-colors">
           <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary/10 rounded-full blur-2xl group-hover:bg-primary/20 transition-all"></div>
-          
+
           <div className="flex justify-between items-start mb-4 relative z-10">
             <div>
               <h3 className="text-xl font-bold text-text-main">Tasa BCV Oficial</h3>
               <p className="text-xs text-text-muted mt-1">Fuente: {bcvData.fuente || 'DolarApi'}</p>
             </div>
-            <button 
+            <button
               onClick={fetchBcv}
               className="text-primary hover:text-primary-dark transition-colors p-2 rounded-full hover:bg-primary/10"
               title="Recargar"
@@ -135,7 +138,7 @@ export const Tarifas = () => {
               <RefreshCw size={20} className={bcvLoading ? 'animate-spin' : ''} />
             </button>
           </div>
-          
+
           <div className="flex items-end gap-2 relative z-10">
             <span className="text-4xl font-bold text-primary tracking-tight">
               {bcvLoading ? '---' : bcvData.rate.toFixed(2)}
@@ -150,8 +153,8 @@ export const Tarifas = () => {
             <h2 className="text-3xl font-bold text-text-main tracking-tight mb-2">Gestión de Tarifas</h2>
             <p className="text-text-muted">Configura los precios del agua en dólares (USD) y convierte automáticamente a Bolívares.</p>
           </div>
-          <button 
-            onClick={handleOpenCreate} 
+          <button
+            onClick={handleOpenCreate}
             className="bg-primary text-white px-6 py-2.5 rounded-xl font-semibold hover:bg-primary-dark hover:shadow-[0_0_15px_rgba(52,152,219,0.3)] transition-all flex items-center justify-center gap-2 ambient-glow whitespace-nowrap"
           >
             <Plus size={18} /> Nueva Tarifa
@@ -192,9 +195,9 @@ export const Tarifas = () => {
                 ) : (
                   tarifas.map((t) => {
                     const precioUSD = Number(t.precio_base);
-                    const precioBs = (precioUSD * (bcvData.rate || 1)).toLocaleString('es-VE', { 
-                      minimumFractionDigits: 2, 
-                      maximumFractionDigits: 2 
+                    const precioBs = (precioUSD * (bcvData.rate || 1)).toLocaleString('es-VE', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2
                     });
                     const iconColor = getVolumeIcon(t.volumen_litros);
 
@@ -228,16 +231,16 @@ export const Tarifas = () => {
                         </td>
                         <td className="p-4 text-right">
                           <div className="flex items-center justify-end gap-1">
-                            <button 
+                            <button
                               onClick={() => handleOpenEdit(t)}
-                              className="p-2 text-text-muted hover:text-primary transition-colors" 
+                              className="p-2 text-text-muted hover:text-primary transition-colors"
                               title="Editar"
                             >
                               <Pencil size={18} />
                             </button>
-                            <button 
+                            <button
                               onClick={() => handleDelete(t.id_tarifa)}
-                              className="p-2 text-text-muted hover:text-status-error transition-colors" 
+                              className="p-2 text-text-muted hover:text-status-error transition-colors cursor-pointer"
                               title="Eliminar"
                             >
                               <Trash2 size={18} />
@@ -255,8 +258,8 @@ export const Tarifas = () => {
       </div>
 
       {/* Create/Edit Modal (Inline redesign) */}
-      <Modal 
-        isOpen={isModalOpen} 
+      <Modal
+        isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title={editingTarifa ? 'Configurar Tarifa' : 'Nueva Tarifa'}
       >
@@ -265,9 +268,9 @@ export const Tarifas = () => {
             <label className="text-sm font-semibold text-text-muted block">Volumen (Litros)</label>
             <div className="relative">
               <Droplet size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" />
-              <input 
-                type="number" 
-                value={form.volumen_litros} 
+              <input
+                type="number"
+                value={form.volumen_litros}
                 onChange={e => setForm({ ...form, volumen_litros: e.target.value })}
                 placeholder="Ej. 1000"
                 className="w-full bg-background border border-border rounded-xl py-3 pl-12 pr-4 text-text-main focus:border-primary/50 focus:ring-1 focus:ring-primary/50 outline-none"
@@ -282,10 +285,10 @@ export const Tarifas = () => {
             </label>
             <div className="relative">
               <DollarSign size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" />
-              <input 
-                type="number" 
+              <input
+                type="number"
                 step="0.01"
-                value={form.precio_base} 
+                value={form.precio_base}
                 onChange={e => setForm({ ...form, precio_base: e.target.value })}
                 placeholder="0.00"
                 className="w-full bg-background border border-border rounded-xl py-3 pl-12 pr-4 text-text-main focus:border-primary/50 focus:ring-1 focus:ring-primary/50 outline-none font-mono"
@@ -308,16 +311,16 @@ export const Tarifas = () => {
               Basado en tasa BCV actual ({bcvData.rate.toFixed(2)})
             </p>
           </div>
-          
+
           {editingTarifa && (
             <div className="flex items-center justify-between">
               <span className="text-sm font-semibold text-text-muted">Estado Activo</span>
               <label className="relative inline-flex items-center cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  checked={form.activo} 
-                  onChange={e => setForm({ ...form, activo: e.target.checked })} 
-                  className="sr-only peer" 
+                <input
+                  type="checkbox"
+                  checked={form.activo}
+                  onChange={e => setForm({ ...form, activo: e.target.checked })}
+                  className="sr-only peer"
                 />
                 <div className="w-11 h-6 bg-background border border-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
               </label>
@@ -325,15 +328,15 @@ export const Tarifas = () => {
           )}
 
           <div className="flex justify-end gap-3 pt-4 border-t border-border/50">
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={() => setIsModalOpen(false)}
-              className="px-6 py-2.5 rounded-xl border border-border bg-background text-text-main font-semibold hover:bg-background-card transition-colors"
+              className="px-6 py-2.5 rounded-xl bg-slate-800 text-slate-300 font-semibold hover:bg-slate-700 transition-colors"
             >
               Cancelar
             </button>
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={submitting}
               className="px-6 py-2.5 rounded-xl bg-primary text-white font-semibold hover:shadow-glow hover:bg-primary-dark transition-all"
             >
@@ -341,6 +344,28 @@ export const Tarifas = () => {
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* Modal para Eliminar Tarifa */}
+      <Modal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, id: null })}
+        title="Eliminar Tarifa"
+      >
+        <div className="flex flex-col gap-4 mt-4">
+          <p className="text-sm text-text-muted">
+            ¿Estás seguro de que deseas eliminar esta tarifa? Esta acción no se puede deshacer.
+          </p>
+          <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-border/50">
+            <Button variant="secondary" onClick={() => setDeleteModal({ isOpen: false, id: null })}>Cancelar</Button>
+            <Button
+              variant="danger"
+              onClick={() => handleDelete(deleteModal.id, true)}
+            >
+              Eliminar
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );
