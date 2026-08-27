@@ -4,7 +4,6 @@ import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { Check, X, User, Truck, Phone, Mail, FileText, Badge as BadgeIcon, ChevronLeft, ChevronRight, Eye, Image, Clock, ShieldCheck } from 'lucide-react';
-import toast from 'react-hot-toast';
 import api from '../api/client';
 
 const PAGE_SIZE_OPTIONS = [10, 15, 20, 25];
@@ -13,6 +12,9 @@ export const Cisterneros = () => {
   const [cisterneros, setCisterneros] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
+  const [rejectModal, setRejectModal] = useState({ isOpen: false, id: null });
+  const [motivoRechazo, setMotivoRechazo] = useState('');
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
   const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 10, totalPages: 1 });
   const [pageSize, setPageSize] = useState(10);
@@ -22,6 +24,13 @@ export const Cisterneros = () => {
 
   // Modal de previsualización de documentos
   const [docPreview, setDocPreview] = useState({ isOpen: false, url: null, title: '', id: null, type: null });
+
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => {
+      setToast({ show: false, message: '', type: 'success' });
+    }, 4500);
+  };
 
   const fetchCisterneros = async (page = 1, size = pageSize) => {
     try {
@@ -61,21 +70,26 @@ export const Cisterneros = () => {
     fetchCisterneros(1, newSize);
   };
 
-  const handleValidation = async (id, aprobado) => {
+  const handleValidation = async (id, aprobado, motivo = undefined) => {
     try {
-      setActionLoading(id);
-      let motivo_rechazo = undefined;
-      
-      if (!aprobado) {
-        motivo_rechazo = window.prompt('Indique el motivo del rechazo:');
-        if (motivo_rechazo === null) return;
+      if (!aprobado && motivo === undefined) {
+        setRejectModal({ isOpen: true, id });
+        return;
       }
 
-      await api.patch(`/admin/cisterneros/${id}/validar`, { aprobado, motivo_rechazo });
+      setActionLoading(id);
+
+      await api.patch(`/admin/cisterneros/${id}/validar`, { aprobado, motivo_rechazo: motivo });
       setCisterneros(prev => prev.filter(c => c.id_cisternero !== id));
-      toast.success(aprobado ? 'Cisternero aprobado' : 'Cisternero rechazado');
+
+      if (!aprobado) {
+        setRejectModal({ isOpen: false, id: null });
+        setMotivoRechazo('');
+      }
+
+      showToast(aprobado ? 'Conductor aprobado exitosamente' : 'Solicitud rechazada', aprobado ? 'success' : 'error');
     } catch (error) {
-      toast.error(`Error: ${error.response?.data?.error || error.message}`);
+      showToast(`Error: ${error.response?.data?.error || error.message}`, 'error');
     } finally {
       setActionLoading(null);
     }
@@ -88,7 +102,7 @@ export const Cisterneros = () => {
   const markAsValidated = () => {
     if (docPreview.id && docPreview.type) {
       setValidatedDocs(prev => ({ ...prev, [`${docPreview.id}_${docPreview.type}`]: true }));
-      toast.success(`${docPreview.title} marcado como verificado`);
+      showToast(`${docPreview.title} marcado como verificado`, 'success');
     }
     setDocPreview({ isOpen: false, url: null, title: '', id: null, type: null });
   };
@@ -136,9 +150,7 @@ export const Cisterneros = () => {
                     )}
                   </div>
                   <h4 className="text-xl text-text-main font-semibold text-center">{c.usuario.nombre}</h4>
-                  <span className="px-2 py-1 rounded bg-background border border-border text-text-muted text-xs font-semibold">
-                    ID: {c.id_cisternero}
-                  </span>
+
                   <div className="w-full mt-4 space-y-3">
                     <div className="flex items-center gap-2 text-text-muted">
                       <Phone size={16} className="text-primary" />
@@ -177,10 +189,10 @@ export const Cisterneros = () => {
                       </div>
                       <div className="bg-background p-3 rounded-lg border border-border/50 flex flex-col justify-center items-center">
                         {c.vehiculo?.fotos_url ? (
-                           <button onClick={() => openDocPreview(c.vehiculo.fotos_url, 'Foto del Vehículo', c.id_cisternero, 'vehiculo')} className="text-xs text-primary hover:underline flex flex-col items-center gap-1 cursor-pointer">
-                             <Image size={20} />
-                             Ver Foto
-                           </button>
+                          <button onClick={() => openDocPreview(c.vehiculo.fotos_url, 'Foto del Vehículo', c.id_cisternero, 'vehiculo')} className="text-xs text-primary hover:underline flex flex-col items-center gap-1 cursor-pointer">
+                            <Image size={20} />
+                            Ver Foto
+                          </button>
                         ) : (
                           <span className="text-xs text-text-muted text-center">Sin foto</span>
                         )}
@@ -200,7 +212,7 @@ export const Cisterneros = () => {
                         disabled={!c.documento_identidad_url}
                         className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border transition-all cursor-pointer group/doc ${
                           !c.documento_identidad_url ? 'border-border/50 bg-background/50 opacity-50 cursor-not-allowed' :
-                          isCedulaValid 
+                          isCedulaValid
                             ? 'border-status-success/40 bg-status-success/5 hover:border-status-success hover:bg-status-success/10'
                             : 'border-status-warning/40 bg-status-warning/5 hover:border-status-warning hover:bg-status-warning/10 hover:shadow-[0_0_12px_rgba(245,158,11,0.15)]'
                         }`}
@@ -231,7 +243,7 @@ export const Cisterneros = () => {
                         disabled={!c.licencia_documento_url}
                         className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border transition-all cursor-pointer group/doc ${
                           !c.licencia_documento_url ? 'border-border/50 bg-background/50 opacity-50 cursor-not-allowed' :
-                          isLicenciaValid 
+                          isLicenciaValid
                             ? 'border-status-success/40 bg-status-success/5 hover:border-status-success hover:bg-status-success/10'
                             : 'border-status-warning/40 bg-status-warning/5 hover:border-status-warning hover:bg-status-warning/10 hover:shadow-[0_0_12px_rgba(245,158,11,0.15)]'
                         }`}
@@ -271,15 +283,15 @@ export const Cisterneros = () => {
 
               {/* Actions Footer */}
               <div className="bg-background-hover/30 p-4 border-t border-border flex justify-end gap-4 mt-auto">
-                <button 
+                <button
                   disabled={actionLoading === c.id_cisternero}
                   onClick={() => handleValidation(c.id_cisternero, false)}
-                  className="px-6 py-2 rounded-lg border border-status-error text-status-error text-sm font-semibold hover:bg-status-error/10 transition-colors flex items-center gap-2 disabled:opacity-50"
+                  className="px-6 py-2 text-status-error bg-status-error/10 hover:bg-status-error/20 border border-status-error/30 transition-all rounded-lg cursor-pointer text-sm font-semibold flex items-center gap-2 disabled:opacity-50"
                 >
                   <X size={16} />
                   Rechazar
                 </button>
-                <button 
+                <button
                   disabled={actionLoading === c.id_cisternero}
                   onClick={() => handleValidation(c.id_cisternero, true)}
                   className="px-6 py-2 rounded-lg bg-status-success text-white text-sm font-semibold hover:bg-status-success/90 transition-colors flex items-center gap-2 shadow-[0_0_15px_rgba(16,185,129,0.3)] disabled:opacity-50 ambient-glow"
@@ -293,44 +305,32 @@ export const Cisterneros = () => {
         </div>
       )}
 
-      {/* Paginación */}
-      {!loading && cisterneros.length > 0 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-2 mb-8">
-          <div className="flex items-center gap-3">
-            <label className="text-sm text-text-muted">Mostrar:</label>
-            <select
-              value={pageSize}
-              onChange={handlePageSizeChange}
-              className="px-3 py-2 rounded-xl glass-panel text-text-main text-sm font-semibold focus:border-primary/50 outline-none"
+      {/* Modal para Rechazar Conductor */}
+      <Modal
+        isOpen={rejectModal.isOpen}
+        onClose={() => setRejectModal({ isOpen: false, id: null })}
+        title="Rechazar solicitud del conductor"
+      >
+        <div className="flex flex-col gap-4 mt-4">
+          <textarea
+            value={motivoRechazo}
+            onChange={(e) => setMotivoRechazo(e.target.value)}
+            placeholder="Motivo del rechazo..."
+            className="w-full bg-background/50 border border-border rounded-xl p-3 text-sm text-text-main resize-none focus:border-status-error focus:ring-1 focus:ring-status-error outline-none"
+            rows={4}
+          />
+          <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-border/50">
+            <Button variant="secondary" onClick={() => setRejectModal({ isOpen: false, id: null })}>Cancelar</Button>
+            <Button
+              className="bg-status-error text-white hover:bg-status-error/80 transition-all rounded-lg cursor-pointer px-5 py-2.5 text-sm font-medium"
+              onClick={() => handleValidation(rejectModal.id, false, motivoRechazo)}
+              disabled={!motivoRechazo.trim() || actionLoading === rejectModal.id}
             >
-              {PAGE_SIZE_OPTIONS.map(opt => (
-                <option key={opt} value={opt} className="bg-background-card">{opt} por pág.</option>
-              ))}
-            </select>
+              Confirmar rechazo
+            </Button>
           </div>
-          {pagination.totalPages > 1 && (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handlePrevPage}
-                disabled={pagination.page <= 1}
-                className="p-2 rounded-xl glass-panel text-text-muted hover:text-text-main disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-              >
-                <ChevronLeft size={20} />
-              </button>
-              <span className="px-4 py-2 rounded-xl bg-primary/10 text-primary font-semibold text-sm">
-                Pág. {pagination.page} / {pagination.totalPages}
-              </span>
-              <button
-                onClick={handleNextPage}
-                disabled={pagination.page >= pagination.totalPages}
-                className="p-2 rounded-xl glass-panel text-text-muted hover:text-text-main disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-              >
-                <ChevronRight size={20} />
-              </button>
-            </div>
-          )}
         </div>
-      )}
+      </Modal>
 
       {/* Modal de Previsualización de Documento */}
       <Modal isOpen={docPreview.isOpen} onClose={() => setDocPreview({ isOpen: false, url: null, title: '', id: null, type: null })} title={docPreview.title} maxWidth="max-w-5xl">
@@ -346,7 +346,7 @@ export const Cisterneros = () => {
                   className="w-full h-auto max-h-[70vh] object-contain"
                   onError={(e) => {
                     e.target.onerror = null;
-                    e.target.src = 'https://placehold.co/600x400/1e293b/94a3b8?text=Imagen+No+Disponible\n(Verifique+permisos+del+bucket)';
+                    e.target.src = 'https://placehold.co/600x400/1e293b/94a3b8?text=Imagen+No+Disponible';
                   }}
                 />
               </div>
@@ -365,6 +365,27 @@ export const Cisterneros = () => {
           </div>
         </div>
       </Modal>
+
+      {/* Toast Notificación */}
+      {toast.show && (
+        <div className={`fixed bottom-6 right-6 z-50 animate-fade-in flex items-center gap-3 px-6 py-4 rounded-xl shadow-2xl border backdrop-blur-md ${
+          toast.type === 'error' ? 'bg-status-error/10 border-status-error/30 text-status-error' : 'bg-status-success/10 border-status-success/30 text-status-success'
+        }`}>
+          <div className={`p-2 rounded-full ${toast.type === 'error' ? 'bg-status-error/20' : 'bg-status-success/20'}`}>
+            {toast.type === 'error' ? <X size={20} /> : <Check size={20} />}
+          </div>
+          <div className="flex flex-col">
+            <span className="font-bold text-sm">{toast.type === 'error' ? 'Error' : 'Operación Exitosa'}</span>
+            <span className="text-sm opacity-90">{toast.message}</span>
+          </div>
+          <button
+            onClick={() => setToast({ ...toast, show: false })}
+            className="absolute top-2 right-2 p-1 opacity-50 hover:opacity-100 transition-opacity rounded-full hover:bg-white/10"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
     </div>
   );
 };

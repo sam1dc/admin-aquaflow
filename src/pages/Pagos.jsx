@@ -113,7 +113,7 @@ export const Pagos = () => {
 
   const renderPagoCard = (pago, isPendiente) => {
     const pedido = pago.pedido;
-    const cliente = pedido?.cliente?.usuario;
+    const cliente = pago.usuario || pedido?.cliente?.usuario;
     const config = metodoConfig[pago.metodo] || { icon: CreditCard, color: 'text-primary' };
     const Icon = config.icon;
 
@@ -150,20 +150,11 @@ export const Pagos = () => {
             <p className="text-xs text-text-muted font-medium uppercase tracking-wider mb-1">Cliente</p>
             <p className="text-sm text-text-main">{cliente?.nombre || 'N/A'}</p>
           </div>
-          <div>
+          <div className="col-span-2">
             <p className="text-xs text-text-muted font-medium uppercase tracking-wider mb-1">Orden Asociada</p>
-            <a href={`/pedidos`} className="text-sm text-primary hover:underline font-medium inline-flex items-center gap-1">
+            <a href={`/pedidos?search=${pedido?.id_pedido}`} className="text-sm text-primary hover:underline font-medium inline-flex items-center gap-1">
               {pedido?.id_pedido?.slice(0, 8).toUpperCase() || 'N/A'} <ChevronRight size={14} />
             </a>
-          </div>
-          <div className="flex flex-col justify-center">
-            {pago.comprobante_url ? (
-              <a href={pago.comprobante_url} target="_blank" rel="noreferrer" className="text-sm text-primary hover:underline inline-flex items-center gap-1 font-medium">
-                <FileText size={16} /> Ver Comprobante
-              </a>
-            ) : (
-              <span className="text-sm text-text-muted">Sin Comprobante</span>
-            )}
           </div>
         </div>
 
@@ -180,7 +171,7 @@ export const Pagos = () => {
             <button
               disabled={actionLoading === pago.id_pago}
               onClick={() => handleVerify(pago.id_pago, false)}
-              className="flex-1 border border-status-error bg-transparent text-status-error hover:bg-status-error/10 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+              className="flex-1 border border-red-500 bg-red-500/20 text-red-500 hover:bg-red-500/30 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
             >
               <X size={18} /> Rechazar
             </button>
@@ -207,21 +198,19 @@ export const Pagos = () => {
       <div className="flex border-b border-border/50">
         <button
           onClick={() => setTab('pendientes')}
-          className={`px-8 py-4 font-semibold text-sm transition-all duration-300 outline-none ${
-            tab === 'pendientes'
+          className={`px-8 py-4 font-semibold text-sm transition-all duration-300 outline-none ${tab === 'pendientes'
               ? 'text-primary border-b-2 border-primary'
               : 'text-text-muted hover:text-text-main'
-          }`}
+            }`}
         >
           Pendientes ({pagosPendientes.length})
         </button>
         <button
           onClick={() => setTab('historial')}
-          className={`px-8 py-4 font-semibold text-sm transition-all duration-300 outline-none ${
-            tab === 'historial'
+          className={`px-8 py-4 font-semibold text-sm transition-all duration-300 outline-none ${tab === 'historial'
               ? 'text-primary border-b-2 border-primary'
               : 'text-text-muted hover:text-text-main'
-          }`}
+            }`}
         >
           Historial
         </button>
@@ -262,9 +251,9 @@ export const Pagos = () => {
       )}
 
       {/* Modal para Rechazar Pago */}
-      <Modal 
-        isOpen={showRejectModal} 
-        onClose={() => setShowRejectModal(false)} 
+      <Modal
+        isOpen={showRejectModal}
+        onClose={() => setShowRejectModal(false)}
         title="Rechazar Pago"
       >
         <div className="flex flex-col gap-4 mt-4">
@@ -277,9 +266,9 @@ export const Pagos = () => {
             rows={4}
           />
           <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-border/50">
-            <Button variant="outline" onClick={() => setShowRejectModal(false)}>Cancelar</Button>
-            <Button 
-              variant="error" 
+            <Button variant="secondary" onClick={() => setShowRejectModal(false)}>Cancelar</Button>
+            <Button
+              variant="danger"
               onClick={() => handleVerify(selectedPagoId, false, motivoRechazo)}
               disabled={!motivoRechazo.trim() || actionLoading === selectedPagoId}
             >
@@ -291,9 +280,8 @@ export const Pagos = () => {
 
       {/* Toast Notificación Personalizada */}
       {toast.show && (
-        <div className={`fixed bottom-6 right-6 z-50 animate-fade-in flex items-center gap-3 px-6 py-4 rounded-xl shadow-2xl border backdrop-blur-md ${
-          toast.type === 'error' ? 'bg-status-error/10 border-status-error/30 text-status-error' : 'bg-status-success/10 border-status-success/30 text-status-success'
-        }`}>
+        <div className={`fixed bottom-6 right-6 z-50 animate-fade-in flex items-center gap-3 px-6 py-4 rounded-xl shadow-2xl border backdrop-blur-md ${toast.type === 'error' ? 'bg-status-error/10 border-status-error/30 text-status-error' : 'bg-status-success/10 border-status-success/30 text-status-success'
+          }`}>
           <div className={`p-2 rounded-full ${toast.type === 'error' ? 'bg-status-error/20' : 'bg-status-success/20'}`}>
             {toast.type === 'error' ? <X size={20} /> : <Check size={20} />}
           </div>
@@ -301,7 +289,7 @@ export const Pagos = () => {
             <span className="font-bold text-sm">{toast.type === 'error' ? 'Error' : 'Operación Exitosa'}</span>
             <span className="text-sm opacity-90">{toast.message}</span>
           </div>
-          <button 
+          <button
             onClick={() => setToast({ ...toast, show: false })}
             className="absolute top-2 right-2 p-1 opacity-50 hover:opacity-100 transition-opacity rounded-full hover:bg-white/10"
           >

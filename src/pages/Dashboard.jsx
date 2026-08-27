@@ -7,6 +7,7 @@ export const Dashboard = () => {
     cisternerosPendientes: 0,
     tarifasActivas: 0,
     promociones: 0,
+    incidenciasActivas: 0,
   });
 
   const [loading, setLoading] = useState(true);
@@ -14,16 +15,21 @@ export const Dashboard = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [cisternerosRes, tarifasRes, promosRes] = await Promise.all([
+        const [cisternerosRes, tarifasRes, promosRes, incidenciasRes] = await Promise.all([
           api.get('/admin/cisterneros/pendientes').catch(() => ({ data: { data: [] } })),
           api.get('/admin/tarifas').catch(() => ({ data: { data: [] } })),
           api.get('/admin/promociones').catch(() => ({ data: { data: [] } })),
+          api.get('/admin/incidencias').catch(() => ({ data: { data: [] } })),
         ]);
         
+        const incidenciasData = incidenciasRes.data.data || [];
+        const incidenciasActivas = incidenciasData.filter(i => i.estatus_gestion !== 'Cerrada').length;
+
         setStats({
           cisternerosPendientes: cisternerosRes.data.data?.length || 0,
           tarifasActivas: tarifasRes.data.data?.length || 0,
           promociones: promosRes.data.data?.length || 0,
+          incidenciasActivas: incidenciasActivas,
         });
       } catch (error) {
         console.error("Error al cargar stats", error);
@@ -38,7 +44,7 @@ export const Dashboard = () => {
     <div className="animate-fade-in">
       {/* Page Header */}
       <div className="mb-8">
-        <h2 className="text-3xl font-bold text-text-main tracking-tight">Overview General</h2>
+        <h2 className="text-3xl font-bold text-text-main tracking-tight">Vista General</h2>
         <p className="text-text-muted mt-1">Métricas de operación en tiempo real.</p>
       </div>
 
@@ -110,25 +116,25 @@ export const Dashboard = () => {
           </div>
         </div>
 
-        {/* KPI 4: Alertas/Incidencias (Span 3) */}
+        {/* KPI 4: Incidencias (Span 3) */}
         <div className="col-span-12 md:col-span-6 lg:col-span-3 glass-panel rounded-xl p-4 flex flex-col hover-ambient-glow transition-all duration-300 border-status-error/30 group">
           <div className="absolute inset-0 bg-status-error/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
           <div className="flex justify-between items-start mb-4 border-b border-border pb-2 relative z-10">
             <div className="flex items-center gap-2">
               <AlertTriangle className="text-status-error text-xl" size={20} />
-              <h3 className="text-xs font-semibold text-status-error uppercase tracking-wider">Alertas Críticas</h3>
+              <h3 className="text-xs font-semibold text-status-error uppercase tracking-wider">Incidencias</h3>
             </div>
           </div>
           <div className="mt-auto relative z-10 flex items-center justify-between">
-            <span className="text-4xl font-bold text-status-error">0</span>
-            <button className="text-xs px-3 py-1 rounded bg-status-error/10 text-status-error hover:bg-status-error/20 transition-colors border border-status-error/20">Revisar</button>
+            <span className="text-4xl font-bold text-status-error">{stats.incidenciasActivas}</span>
+            <a href="/incidencias" className="text-xs px-3 py-1 rounded bg-status-error/10 text-status-error hover:bg-status-error/20 transition-colors border border-status-error/20 flex items-center justify-center">Revisar</a>
           </div>
         </div>
 
         {/* Main Content Row 2 */}
         
-        {/* Cisterneros por Validar List (Span 7) */}
-        <div className="col-span-12 lg:col-span-7 glass-panel rounded-xl flex flex-col hover-ambient-glow transition-all duration-300">
+        {/* Cisterneros por Validar List (Span 12) */}
+        <div className="col-span-12 glass-panel rounded-xl flex flex-col hover-ambient-glow transition-all duration-300">
           <div className="p-4 border-b border-border flex justify-between items-center bg-background/50 rounded-t-xl">
             <h3 className="text-xl font-semibold text-text-main">Conductores por Validar</h3>
             <a href="/cisterneros" className="text-primary text-sm hover:underline flex items-center">
@@ -148,22 +154,6 @@ export const Dashboard = () => {
                 <p>No hay conductores pendientes de validación</p>
               </div>
             )}
-          </div>
-        </div>
-
-        {/* Última Actividad Timeline (Span 5) */}
-        <div className="col-span-12 lg:col-span-5 glass-panel rounded-xl flex flex-col p-6 hover-ambient-glow transition-all duration-300">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-xl font-semibold text-text-main">Última Actividad</h3>
-            <span className="text-text-muted hover:text-primary cursor-pointer transition-colors">
-              <Clock size={20} />
-            </span>
-          </div>
-          <div className="relative pl-6 border-l border-border/40 space-y-6 flex-1 flex flex-col justify-center">
-            {/* Actividad vacía por defecto basada en el componente anterior */}
-            <div className="text-center text-text-muted py-8">
-              No hay actividades recientes
-            </div>
           </div>
         </div>
 

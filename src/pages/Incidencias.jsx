@@ -1,10 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
-import { Modal } from '../components/ui/Modal';
-import { AlertTriangle, Check, Eye, User, Package, ExternalLink, ShieldAlert, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
-import toast from 'react-hot-toast';
-const PAGE_SIZE_OPTIONS = [10, 15, 20, 25];
+import { AlertTriangle, Check, Eye, User, Package, ExternalLink, ShieldAlert, X } from 'lucide-react';
 import api from '../api/client';
 
 const tipoVariant = {
@@ -52,27 +49,20 @@ export const Incidencias = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('Todas');
   const [actionLoading, setActionLoading] = useState(null);
-  const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 10, totalPages: 1 });
-  const [pageSize, setPageSize] = useState(10);
-  const [selectedPedidoHistory, setSelectedPedidoHistory] = useState(null);
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
-  const fetchIncidencias = async (page = 1, size = pageSize, currentFilter = filter) => {
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => {
+      setToast({ show: false, message: '', type: 'success' });
+    }, 4500);
+  };
+
+  const fetchIncidencias = async () => {
     try {
       setLoading(true);
-      const params = new URLSearchParams();
-      params.append('page', String(page));
-      params.append('limit', String(size));
-      if (currentFilter !== 'Todas') {
-        params.append('estatus_gestion', currentFilter);
-      }
-
-      const res = await api.get(`/admin/incidencias?${params.toString()}`);
+      const res = await api.get('/admin/incidencias');
       setIncidencias(res.data.data || []);
-      if (res.data.pagination) {
-        setPagination(res.data.pagination);
-      } else {
-        setPagination({ total: res.data.data?.length || 0, page: 1, limit: size, totalPages: 1 });
-      }
     } catch (error) {
       console.error("Error fetching incidencias:", error);
     } finally {
@@ -81,31 +71,17 @@ export const Incidencias = () => {
   };
 
   useEffect(() => {
-    fetchIncidencias(1, pageSize, filter);
-  }, [filter]);
-
-  const handlePrevPage = () => {
-    if (pagination.page > 1) fetchIncidencias(pagination.page - 1, pageSize, filter);
-  };
-
-  const handleNextPage = () => {
-    if (pagination.page < pagination.totalPages) fetchIncidencias(pagination.page + 1, pageSize, filter);
-  };
-
-  const handlePageSizeChange = (e) => {
-    const newSize = Number(e.target.value);
-    setPageSize(newSize);
-    fetchIncidencias(1, newSize, filter);
-  };
+    fetchIncidencias();
+  }, []);
 
   const handleUpdateStatus = async (id, estatus_gestion) => {
     try {
       setActionLoading(id);
       const res = await api.patch(`/admin/incidencias/${id}/estado`, { estatus_gestion });
-      toast.success(res.data?.message || 'Incidencia actualizada');
+      showToast(res.data?.message || 'Incidencia actualizada', 'success');
       fetchIncidencias();
     } catch (error) {
-      toast.error(`Error: ${error.response?.data?.error || error.message}`);
+      showToast(`Error: ${error.response?.data?.error || error.message}`, 'error');
     } finally {
       setActionLoading(null);
     }
@@ -229,16 +205,7 @@ export const Incidencias = () => {
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-3 mt-2 pt-4 border-t border-border/50 flex-wrap">
-                  {pedido && (
-                    <Button
-                      variant="outline"
-                      onClick={() => setSelectedPedidoHistory(pedido)}
-                      className="px-4 py-2 border-primary/30 text-primary hover:border-primary hover:bg-primary/5 transition-all text-sm font-semibold flex items-center gap-2"
-                    >
-                      <Clock size={16} /> Ver Historial del Pedido
-                    </Button>
-                  )}
+                <div className="flex justify-end gap-3 mt-2 pt-4 border-t border-border/50">
                   {inc.estatus_gestion !== 'En Revision' && inc.estatus_gestion !== 'Cerrada' && (
                     <Button
                       variant="outline"
@@ -270,81 +237,26 @@ export const Incidencias = () => {
         </div>
       )}
 
-      {/* Paginación */}
-      {!loading && incidencias.length > 0 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-2">
-          <div className="flex items-center gap-3">
-            <label className="text-sm text-text-muted">Mostrar:</label>
-            <select
-              value={pageSize}
-              onChange={handlePageSizeChange}
-              className="px-3 py-2 rounded-xl glass-panel text-text-main text-sm font-semibold focus:border-primary/50 outline-none"
-            >
-              {PAGE_SIZE_OPTIONS.map(opt => (
-                <option key={opt} value={opt} className="bg-background-card">{opt} por pág.</option>
-              ))}
-            </select>
+      {/* Toast Notificación Personalizada */}
+      {toast.show && (
+        <div className={`fixed bottom-6 right-6 z-50 animate-fade-in flex items-center gap-3 px-6 py-4 rounded-xl shadow-2xl border backdrop-blur-md ${
+          toast.type === 'error' ? 'bg-status-error/10 border-status-error/30 text-status-error' : 'bg-status-success/10 border-status-success/30 text-status-success'
+        }`}>
+          <div className={`p-2 rounded-full ${toast.type === 'error' ? 'bg-status-error/20' : 'bg-status-success/20'}`}>
+            {toast.type === 'error' ? <X size={20} /> : <Check size={20} />}
           </div>
-          {pagination.totalPages > 1 && (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handlePrevPage}
-                disabled={pagination.page <= 1}
-                className="p-2 rounded-xl glass-panel text-text-muted hover:text-text-main disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-              >
-                <ChevronLeft size={20} />
-              </button>
-              <span className="px-4 py-2 rounded-xl bg-primary/10 text-primary font-semibold text-sm">
-                Pág. {pagination.page} / {pagination.totalPages}
-              </span>
-              <button
-                onClick={handleNextPage}
-                disabled={pagination.page >= pagination.totalPages}
-                className="p-2 rounded-xl glass-panel text-text-muted hover:text-text-main disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-              >
-                <ChevronRight size={20} />
-              </button>
-            </div>
-          )}
+          <div className="flex flex-col pr-4">
+            <span className="font-bold text-sm">{toast.type === 'error' ? 'Error' : 'Operación Exitosa'}</span>
+            <span className="text-sm opacity-90">{toast.message}</span>
+          </div>
+          <button 
+            onClick={() => setToast({ ...toast, show: false })}
+            className="absolute top-2 right-2 p-1 opacity-50 hover:opacity-100 transition-opacity rounded-full hover:bg-white/10"
+          >
+            <X size={14} />
+          </button>
         </div>
       )}
-
-      {/* Modal Historial de Pedido */}
-      <Modal isOpen={!!selectedPedidoHistory} onClose={() => setSelectedPedidoHistory(null)} title="Historial del Pedido">
-        {selectedPedidoHistory && (
-          <div className="flex flex-col gap-4 mt-4">
-            <div className="flex flex-col mb-2">
-              <span className="text-xs text-text-muted uppercase font-bold tracking-wider">ID Pedido</span>
-              <span className="font-semibold text-text-main">{selectedPedidoHistory.id_pedido}</span>
-            </div>
-            
-            {selectedPedidoHistory.estados_log && selectedPedidoHistory.estados_log.length > 0 ? (
-              <div className="relative pl-4 border-l-2 border-primary/30 space-y-6">
-                {selectedPedidoHistory.estados_log.map((log, idx) => (
-                  <div key={idx} className="relative">
-                    <div className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-primary ring-4 ring-background-card"></div>
-                    <p className="text-sm font-bold text-text-main">{log.estado}</p>
-                    <p className="text-xs text-text-muted mt-1">
-                      {new Date(log.timestamp).toLocaleString('es-VE', {
-                        day: '2-digit', month: 'short', year: 'numeric',
-                        hour: '2-digit', minute: '2-digit'
-                      })}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-text-muted">No hay historial registrado para este pedido.</p>
-            )}
-            
-            <div className="flex justify-end pt-4 mt-2 border-t border-border/50">
-              <Button variant="outline" onClick={() => setSelectedPedidoHistory(null)}>
-                Cerrar
-              </Button>
-            </div>
-          </div>
-        )}
-      </Modal>
     </div>
   );
 };

@@ -3,12 +3,8 @@ import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
-import { Gift, Plus, Pencil, Trash2, Percent, Banknote, Crown, Ticket, Users, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
-import toast from 'react-hot-toast';
-import { ConfirmModal } from '../components/ui/ConfirmModal';
+import { Gift, Plus, Pencil, Trash2, Percent, Banknote, Crown, Ticket, Users, TrendingUp } from 'lucide-react';
 import api from '../api/client';
-
-const PAGE_SIZE_OPTIONS = [10, 15, 20, 25];
 
 export const Promociones = () => {
   const [promos, setPromos] = useState([]);
@@ -25,23 +21,13 @@ export const Promociones = () => {
     limite_usos: '',
   });
   const [submitting, setSubmitting] = useState(false);
-  const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 10, totalPages: 1 });
-  const [pageSize, setPageSize] = useState(10);
-  const [confirmConfig, setConfirmConfig] = useState({ isOpen: false, id: null });
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null });
 
-  const fetchPromos = async (page = 1, size = pageSize) => {
+  const fetchPromos = async () => {
     try {
       setLoading(true);
-      const params = new URLSearchParams();
-      params.append('page', String(page));
-      params.append('limit', String(size));
-      const res = await api.get(`/admin/promociones?${params.toString()}`);
+      const res = await api.get('/admin/promociones');
       setPromos(res.data.data || []);
-      if (res.data.pagination) {
-        setPagination(res.data.pagination);
-      } else {
-        setPagination({ total: res.data.data?.length || 0, page: 1, limit: size, totalPages: 1 });
-      }
     } catch (error) {
       console.error("Error fetching promociones:", error);
     } finally {
@@ -50,22 +36,8 @@ export const Promociones = () => {
   };
 
   useEffect(() => {
-    fetchPromos(1, pageSize);
+    fetchPromos();
   }, []);
-
-  const handlePrevPage = () => {
-    if (pagination.page > 1) fetchPromos(pagination.page - 1, pageSize);
-  };
-
-  const handleNextPage = () => {
-    if (pagination.page < pagination.totalPages) fetchPromos(pagination.page + 1, pageSize);
-  };
-
-  const handlePageSizeChange = (e) => {
-    const newSize = Number(e.target.value);
-    setPageSize(newSize);
-    fetchPromos(1, newSize);
-  };
 
   const isActive = (p) => {
     const now = new Date();
@@ -92,15 +64,18 @@ export const Promociones = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async () => {
-    const id_promocion = confirmConfig.id;
-    if (!id_promocion) return;
+  const handleDelete = async (id_promocion, confirmed = false) => {
+    if (!confirmed) {
+      setDeleteModal({ isOpen: true, id: id_promocion });
+      return;
+    }
     try {
       const res = await api.delete(`/admin/promociones/${id_promocion}`);
-      toast.success(res.data?.message || 'Promoción eliminada');
+      alert(res.data?.message || 'Promoción eliminada');
       fetchPromos();
+      setDeleteModal({ isOpen: false, id: null });
     } catch (error) {
-      toast.error(`Error: ${error.response?.data?.error || error.message}`);
+      alert(`Error: ${error.response?.data?.error || error.message}`);
     }
   };
 
@@ -127,9 +102,8 @@ export const Promociones = () => {
       }
       setIsModalOpen(false);
       fetchPromos();
-      toast.success('Promoción guardada exitosamente');
     } catch (error) {
-      toast.error(`Error al guardar: ${error.response?.data?.error || error.message}`);
+      alert(`Error al guardar: ${error.response?.data?.error || error.message}`);
     } finally {
       setSubmitting(false);
     }
@@ -175,7 +149,7 @@ export const Promociones = () => {
           <div className="text-4xl font-bold text-text-main group-hover:text-primary transition-colors">{stats.totalPromos}</div>
           <div className="text-sm text-text-muted mt-1 font-medium">Promociones Registradas</div>
         </div>
-        
+
         <div className="glass-card rounded-xl p-6 hover:border-status-success/50 transition-colors group">
           <div className="flex justify-between items-start mb-4">
             <div className="p-3 bg-status-success/10 rounded-xl text-status-success">
@@ -186,7 +160,7 @@ export const Promociones = () => {
           <div className="text-4xl font-bold text-text-main group-hover:text-status-success transition-colors">{stats.activas}</div>
           <div className="text-sm text-text-muted mt-1 font-medium">Campañas en Curso</div>
         </div>
-        
+
         <div className="glass-card rounded-xl p-6 hover:border-status-location/50 transition-colors group">
           <div className="flex justify-between items-start mb-4">
             <div className="p-3 bg-status-location/10 rounded-xl text-status-location">
@@ -236,7 +210,7 @@ export const Promociones = () => {
                   const usos = p._count?.usos || 0;
                   const porcentajeUso = p.limite_usos > 0 ? Math.min((usos / p.limite_usos) * 100, 100) : 0;
                   const isExhausted = usos >= p.limite_usos;
-                  
+
                   return (
                     <tr key={p.id_promocion} className={`border-b border-border/30 hover:bg-white/5 transition-colors ${!activa ? 'opacity-70' : ''}`}>
                       <td className="p-4">
@@ -259,8 +233,8 @@ export const Promociones = () => {
                       <td className="p-4">
                         <div className="flex items-center gap-2">
                           <div className="w-16 h-1.5 bg-background rounded-full overflow-hidden border border-border">
-                            <div 
-                              className={`h-full ${isExhausted ? 'bg-status-error' : 'bg-primary'}`} 
+                            <div
+                              className={`h-full ${isExhausted ? 'bg-status-error' : 'bg-primary'}`}
                               style={{ width: `${porcentajeUso}%` }}
                             ></div>
                           </div>
@@ -285,7 +259,7 @@ export const Promociones = () => {
                           <button onClick={() => handleOpenEdit(p)} className="p-2 text-text-muted hover:text-primary transition-colors" title="Editar">
                             <Pencil size={16} />
                           </button>
-                          <button onClick={() => setConfirmConfig({ isOpen: true, id: p.id_promocion })} className="p-2 text-text-muted hover:text-status-error transition-colors" title="Eliminar">
+                          <button onClick={() => handleDelete(p.id_promocion)} className="p-2 text-text-muted hover:text-status-error transition-colors cursor-pointer" title="Eliminar">
                             <Trash2 size={16} />
                           </button>
                         </div>
@@ -295,45 +269,6 @@ export const Promociones = () => {
                 })}
               </tbody>
             </table>
-          </div>
-        )}
-
-        {/* Paginación */}
-        {!loading && promos.length > 0 && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 mt-2">
-            <div className="flex items-center gap-3">
-              <label className="text-sm text-text-muted">Mostrar:</label>
-              <select
-                value={pageSize}
-                onChange={handlePageSizeChange}
-                className="px-3 py-2 rounded-xl glass-panel text-text-main text-sm font-semibold focus:border-primary/50 outline-none"
-              >
-                {PAGE_SIZE_OPTIONS.map(opt => (
-                  <option key={opt} value={opt} className="bg-background-card">{opt} por pág.</option>
-                ))}
-              </select>
-            </div>
-            {pagination.totalPages > 1 && (
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handlePrevPage}
-                  disabled={pagination.page <= 1}
-                  className="p-2 rounded-xl glass-panel text-text-muted hover:text-text-main disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                >
-                  <ChevronLeft size={20} />
-                </button>
-                <span className="px-4 py-2 rounded-xl bg-primary/10 text-primary font-semibold text-sm">
-                  Pág. {pagination.page} / {pagination.totalPages}
-                </span>
-                <button
-                  onClick={handleNextPage}
-                  disabled={pagination.page >= pagination.totalPages}
-                  className="p-2 rounded-xl glass-panel text-text-muted hover:text-text-main disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                >
-                  <ChevronRight size={20} />
-                </button>
-              </div>
-            )}
           </div>
         )}
       </div>
@@ -367,9 +302,9 @@ export const Promociones = () => {
 
           <div className="col-span-1">
             <label className="block text-text-muted font-semibold mb-1">Tipo de Beneficio</label>
-            <select 
-              value={form.tipo} 
-              onChange={e => setForm({ ...form, tipo: e.target.value })} 
+            <select
+              value={form.tipo}
+              onChange={e => setForm({ ...form, tipo: e.target.value })}
               className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-text-main focus:border-primary/50 focus:ring-1 focus:ring-primary/50 outline-none"
             >
               <option value="Porcentaje">Porcentaje (%)</option>
@@ -425,15 +360,15 @@ export const Promociones = () => {
           </div>
 
           <div className="col-span-2 flex justify-end gap-3 mt-4 pt-4 border-t border-border/50">
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={() => setIsModalOpen(false)}
-              className="px-6 py-2.5 rounded-xl border border-border bg-background text-text-main font-semibold hover:bg-background-card transition-colors"
+              className="px-6 py-2.5 rounded-xl bg-slate-800 text-slate-300 font-semibold hover:bg-slate-700 transition-colors"
             >
               Cancelar
             </button>
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={submitting}
               className="px-6 py-2.5 rounded-xl bg-primary text-white font-semibold hover:shadow-glow hover:bg-primary-dark transition-all"
             >
@@ -443,14 +378,27 @@ export const Promociones = () => {
         </form>
       </Modal>
 
-      <ConfirmModal 
-        isOpen={confirmConfig.isOpen}
-        onClose={() => setConfirmConfig({ isOpen: false, id: null })}
-        onConfirm={handleDelete}
+      {/* Modal para Eliminar Promoción */}
+      <Modal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, id: null })}
         title="Eliminar Promoción"
-        message="¿Estás seguro de que deseas eliminar esta promoción? Esta acción no se puede deshacer."
-        variant="danger"
-      />
+      >
+        <div className="flex flex-col gap-4 mt-4">
+          <p className="text-sm text-text-muted">
+            ¿Estás seguro de que deseas eliminar esta promoción? Esta acción no se puede deshacer.
+          </p>
+          <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-border/50">
+            <Button variant="secondary" onClick={() => setDeleteModal({ isOpen: false, id: null })}>Cancelar</Button>
+            <Button
+              variant="danger"
+              onClick={() => handleDelete(deleteModal.id, true)}
+            >
+              Eliminar
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };
