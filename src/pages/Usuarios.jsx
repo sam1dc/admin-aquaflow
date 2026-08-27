@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
-import { Users as UsersIcon, User, Truck, Shield, CheckCircle2, MoreVertical, Star, Ban, Car, CreditCard, ExternalLink, AlertTriangle, Pencil, Trash2 } from 'lucide-react';
+import { ConfirmModal } from '../components/ui/ConfirmModal';
+import { Users as UsersIcon, User, Truck, Shield, CheckCircle2, MoreVertical, Ban, Car, CreditCard, ExternalLink, AlertTriangle, Pencil, Trash2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import api from '../api/client';
 
 const ImagePreview = ({ file }) => {
@@ -35,6 +37,7 @@ const rolVariant = {
   'cliente': 'info',
   'cisternero': 'primary',
   'administrador': 'warning',
+  'soporte': 'info',
 };
 
 const rolLabel = {
@@ -50,14 +53,10 @@ export const Usuarios = () => {
   const [filter, setFilter] = useState('Todos');
   const [actionLoading, setActionLoading] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
-<<<<<<< HEAD
   const [openDropdownId, setOpenDropdownId] = useState(null);
   const [editModal, setEditModal] = useState({ isOpen: false, user: null });
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, user: null });
   const [editForm, setEditForm] = useState({ nombre: '', email: '', telefono: '' });
-=======
-  const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 10, totalPages: 1 });
-  const [pageSize, setPageSize] = useState(10);
   const [confirmConfig, setConfirmConfig] = useState({ isOpen: false, id: null });
   const [showNewUserModal, setShowNewUserModal] = useState(false);
   const [creatingUser, setCreatingUser] = useState(false);
@@ -69,7 +68,6 @@ export const Usuarios = () => {
     vehiculo: { marca: '', modelo: '', placa: '', capacidad_tanque: '' },
     documento_identidad: null, licencia_documento: null, foto_vehiculo: null, foto_perfil: null
   });
->>>>>>> origin/main
 
   const fetchUsuarios = async () => {
     try {
@@ -101,11 +99,11 @@ export const Usuarios = () => {
     try {
       setActionLoading(id_usuario);
       const res = await api.patch(`/admin/usuarios/${id_usuario}/habilitar`);
-      alert(res.data?.message || 'Cuenta habilitada exitosamente');
+      toast.success(res.data?.message || 'Cuenta habilitada exitosamente');
       fetchUsuarios();
       setSelectedUser(null);
     } catch (error) {
-      alert(`Error: ${error.response?.data?.error || error.message}`);
+      toast.error(`Error: ${error.response?.data?.error || error.message}`);
     } finally {
       setActionLoading(null);
     }
@@ -123,10 +121,11 @@ export const Usuarios = () => {
     try {
       setActionLoading(editModal.user.id_usuario);
       await api.put(`/admin/usuarios/${editModal.user.id_usuario}`, editForm);
+      toast.success('Usuario actualizado exitosamente');
       setEditModal({ isOpen: false, user: null });
       fetchUsuarios();
     } catch (error) {
-      alert(`Error al editar usuario: ${error.response?.data?.error || error.message}`);
+      toast.error(`Error al editar usuario: ${error.response?.data?.error || error.message}`);
     } finally {
       setActionLoading(null);
     }
@@ -136,20 +135,27 @@ export const Usuarios = () => {
     try {
       setActionLoading(id_usuario);
       await api.delete(`/admin/usuarios/${id_usuario}`);
+      toast.success('Usuario eliminado exitosamente');
       setDeleteModal({ isOpen: false, user: null });
       fetchUsuarios();
     } catch (error) {
-      alert(`Error al eliminar usuario: ${error.response?.data?.error || error.message}`);
+      toast.error(`Error al eliminar usuario: ${error.response?.data?.error || error.message}`);
     } finally {
       setActionLoading(null);
     }
   };
 
+  const resetNewUserForm = () => ({
+    nombre: '', email: '', telefono: '', password: '', rol: 'cliente',
+    identificacion_fiscal: '', rif_personal: '', licencia_conducir: '',
+    vehiculo: { marca: '', modelo: '', placa: '', capacidad_tanque: '' },
+    documento_identidad: null, licencia_documento: null, foto_vehiculo: null, foto_perfil: null
+  });
+
   const handleCreateUser = async (e) => {
     e.preventDefault();
     try {
       setCreatingUser(true);
-
       const formData = new FormData();
       formData.append('nombre', newUserForm.nombre);
       formData.append('email', newUserForm.email);
@@ -181,13 +187,8 @@ export const Usuarios = () => {
       });
       toast.success('Usuario creado exitosamente');
       setShowNewUserModal(false);
-      setNewUserForm({
-        nombre: '', email: '', telefono: '', password: '', rol: 'cliente',
-        identificacion_fiscal: '', rif_personal: '', licencia_conducir: '',
-        vehiculo: { marca: '', modelo: '', placa: '', capacidad_tanque: '' },
-        documento_identidad: null, licencia_documento: null, foto_vehiculo: null, foto_perfil: null
-      });
-      fetchUsuarios(1, pageSize, filter);
+      setNewUserForm(resetNewUserForm());
+      fetchUsuarios();
     } catch (error) {
       toast.error(error.response?.data?.error || 'Error al crear usuario');
     } finally {
@@ -199,16 +200,12 @@ export const Usuarios = () => {
   const filtered = filter === 'Todos'
     ? usuarios
     : usuarios.filter(u => {
-      const rol = getRol(u);
-      return (filter === 'Cliente' && rol === 'cliente') ||
-        (filter === 'Conductor' && rol === 'cisternero') ||
-<<<<<<< HEAD
-        (filter === 'Admin' && rol === 'administrador');
-=======
-        (filter === 'Admin' && rol === 'administrador') ||
-        (filter === 'Soporte' && rol === 'soporte');
->>>>>>> origin/main
-    });
+        const rol = getRol(u);
+        return (filter === 'Cliente' && rol === 'cliente') ||
+          (filter === 'Conductor' && rol === 'cisternero') ||
+          (filter === 'Admin' && rol === 'administrador') ||
+          (filter === 'Soporte' && rol === 'soporte');
+      });
 
   const getUserIcon = (rol) => {
     if (rol === 'cliente') return <User size={24} className="text-status-location" />;
@@ -233,7 +230,7 @@ export const Usuarios = () => {
         </Button>
       </div>
 
-      {/* Advanced Filters Bar (Glassmorphism) */}
+      {/* Advanced Filters Bar */}
       <div className="glass-card rounded-xl p-4 flex flex-col xl:flex-row gap-4 items-start xl:items-center justify-between">
         <div className="flex items-center gap-2 overflow-x-auto w-full xl:w-auto pb-1 xl:pb-0">
           {roles.map((rol) => {
@@ -242,12 +239,13 @@ export const Usuarios = () => {
               <button
                 key={rol}
                 onClick={() => setFilter(rol)}
-                className={`px-5 py-2 rounded-lg font-semibold text-sm transition-all whitespace-nowrap outline-none ${isActive
-                  ? 'bg-primary/20 text-primary border border-primary/30'
-                  : 'bg-transparent border border-transparent text-text-muted hover:text-text-main hover:bg-white/5'
-                  }`}
+                className={`px-5 py-2 rounded-lg font-semibold text-sm transition-all whitespace-nowrap outline-none cursor-pointer ${
+                  isActive
+                    ? 'bg-primary/20 text-primary border border-primary/30'
+                    : 'bg-transparent border border-transparent text-text-muted hover:text-text-main hover:bg-white/5'
+                }`}
               >
-                {rol === 'Admin' ? 'Administradores' : rol === 'Cliente' ? 'Clientes' : rol === 'Conductor' ? 'Conductores' : 'Todos'}
+                {rol === 'Admin' ? 'Administradores' : rol === 'Cliente' ? 'Clientes' : rol === 'Conductor' ? 'Conductores' : rol === 'Soporte' ? 'Soporte' : 'Todos'}
               </button>
             );
           })}
@@ -278,7 +276,7 @@ export const Usuarios = () => {
             return (
               <div
                 key={u.id_usuario}
-                className={`glass-card rounded-xl p-6 flex flex-col gap-4 transition-all duration-300 group ${isBanned ? 'border-status-error/40 hover:border-status-error/60' : 'hover:border-primary/40 hover:shadow-glow'}`}
+                className={`glass-card rounded-xl p-6 flex flex-col gap-4 transition-all duration-300 group relative ${isBanned ? 'border-status-error/40 hover:border-status-error/60' : 'hover:border-primary/40 hover:shadow-glow'}`}
               >
                 {isBanned && (
                   <div className="absolute -right-4 -top-4 w-24 h-24 bg-status-error/10 blur-[30px] rounded-full pointer-events-none"></div>
@@ -318,11 +316,12 @@ export const Usuarios = () => {
                         <Ban size={12} /> Suspendido
                       </div>
                     ) : (
-                      <div className={`border px-2 py-1 rounded text-[10px] font-bold tracking-wider uppercase whitespace-nowrap ${rol === 'cliente' ? 'bg-primary/10 text-primary border-primary/20' :
+                      <div className={`border px-2 py-1 rounded text-[10px] font-bold tracking-wider uppercase whitespace-nowrap ${
+                        rol === 'cliente' ? 'bg-primary/10 text-primary border-primary/20' :
                         rol === 'cisternero' ? 'bg-status-warning/10 text-status-warning border-status-warning/20' :
-                          'bg-status-location/10 text-status-location border-status-location/20'
-                        }`}>
-                        {rol === 'cisternero' ? 'conductor' : rol}
+                        'bg-status-location/10 text-status-location border-status-location/20'
+                      }`}>
+                        {rolLabel[rol] || rol}
                       </div>
                     )}
                   </div>
@@ -359,7 +358,7 @@ export const Usuarios = () => {
                       </div>
                     </>
                   )}
-                  {rol === 'administrador' && u.administrador && (
+                  {(rol === 'administrador' || rol === 'soporte') && u.administrador && (
                     <>
                       <div className="bg-background/50 p-3 rounded-lg border border-border/50">
                         <p className="text-[10px] text-text-muted mb-1 uppercase font-bold tracking-wider">Nivel Acceso</p>
@@ -385,14 +384,16 @@ export const Usuarios = () => {
                 <div className="flex items-center gap-3 mt-auto pt-4 relative z-10">
                   <button
                     onClick={() => setSelectedUser(u)}
-                    className={`flex-1 bg-transparent border border-border py-2 rounded-lg transition-colors text-sm font-semibold flex justify-center items-center gap-2 ${isBanned ? 'hover:border-status-error/50 text-status-error hover:bg-status-error/10' : 'hover:border-primary hover:text-primary text-text-muted cursor-pointer'}`}
+                    className={`flex-1 bg-transparent border border-border py-2 rounded-lg transition-colors text-sm font-semibold flex justify-center items-center gap-2 cursor-pointer ${
+                      isBanned ? 'hover:border-status-error/50 text-status-error hover:bg-status-error/10' : 'hover:border-primary hover:text-primary text-text-muted'
+                    }`}
                   >
                     {isBanned ? 'Gestionar Estado' : 'Ver Detalles'}
                   </button>
                   <div className="relative">
                     <button
                       onClick={(e) => { e.stopPropagation(); setOpenDropdownId(openDropdownId === u.id_usuario ? null : u.id_usuario); }}
-                      className="w-10 h-10 flex items-center justify-center bg-transparent border border-border hover:bg-white/5 rounded-lg text-text-muted transition-colors"
+                      className="w-10 h-10 flex items-center justify-center bg-transparent border border-border hover:bg-white/5 rounded-lg text-text-muted transition-colors cursor-pointer"
                     >
                       <MoreVertical size={18} />
                     </button>
@@ -403,13 +404,13 @@ export const Usuarios = () => {
                       >
                         <button
                           onClick={() => handleOpenEdit(u)}
-                          className="w-full text-left px-4 py-2 text-sm text-text-main hover:bg-white/5 transition-colors flex items-center gap-2"
+                          className="w-full text-left px-4 py-2 text-sm text-text-main hover:bg-white/5 transition-colors flex items-center gap-2 cursor-pointer"
                         >
                           <Pencil size={14} /> Editar
                         </button>
                         <button
                           onClick={() => { setDeleteModal({ isOpen: true, user: u }); setOpenDropdownId(null); }}
-                          className="w-full text-left px-4 py-2 text-sm text-status-error hover:bg-status-error/10 transition-colors flex items-center gap-2"
+                          className="w-full text-left px-4 py-2 text-sm text-status-error hover:bg-status-error/10 transition-colors flex items-center gap-2 cursor-pointer"
                         >
                           <Trash2 size={14} /> Eliminar
                         </button>
@@ -423,7 +424,7 @@ export const Usuarios = () => {
         </div>
       )}
 
-      {/* Detalles del Usuario (Modal) */}
+      {/* Modal Detalles del Usuario */}
       <Modal isOpen={!!selectedUser} onClose={() => setSelectedUser(null)} title="Detalles del Usuario">
         {selectedUser && (
           <div className="flex flex-col gap-6 mt-4">
@@ -528,14 +529,12 @@ export const Usuarios = () => {
             )}
 
             <div className="flex justify-end gap-3 pt-4 border-t border-border/50 mt-2">
-              <Button variant="outline" onClick={() => setSelectedUser(null)}>
-                Cerrar
-              </Button>
+              <Button variant="outline" onClick={() => setSelectedUser(null)}>Cerrar</Button>
               {selectedUser.cuenta_inhabilitada && (
                 <Button
                   variant="success"
                   disabled={actionLoading === selectedUser.id_usuario}
-                  onClick={() => handleHabilitar(selectedUser.id_usuario)}
+                  onClick={() => setConfirmConfig({ isOpen: true, id: selectedUser.id_usuario })}
                   className="flex items-center gap-2"
                 >
                   <CheckCircle2 size={16} /> Habilitar Cuenta
@@ -546,7 +545,6 @@ export const Usuarios = () => {
         )}
       </Modal>
 
-<<<<<<< HEAD
       {/* Modal Editar Usuario */}
       <Modal isOpen={editModal.isOpen} onClose={() => setEditModal({ isOpen: false, user: null })} title="Editar Usuario">
         <form onSubmit={handleEditUser} className="flex flex-col gap-4 mt-4">
@@ -582,20 +580,42 @@ export const Usuarios = () => {
           <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-border/50">
             <Button type="button" variant="secondary" onClick={() => setEditModal({ isOpen: false, user: null })}>Cancelar</Button>
             <Button type="submit" disabled={actionLoading === editModal.user?.id_usuario}>Guardar Cambios</Button>
-=======
+          </div>
+        </form>
+      </Modal>
+
+      {/* Modal Confirmar Habilitación */}
       <ConfirmModal
         isOpen={confirmConfig.isOpen}
         onClose={() => setConfirmConfig({ isOpen: false, id: null })}
-        onConfirm={handleHabilitar}
+        onConfirm={() => confirmConfig.id && handleHabilitar(confirmConfig.id)}
         title="Habilitar Cuenta"
         message="¿Estás seguro de que deseas habilitar esta cuenta? El usuario podrá volver a acceder al sistema."
         variant="success"
       />
 
+      {/* Modal Eliminar Usuario */}
+      <Modal isOpen={deleteModal.isOpen} onClose={() => setDeleteModal({ isOpen: false, user: null })} title="Eliminar Usuario">
+        <div className="flex flex-col gap-4 mt-4">
+          <p className="text-sm text-text-muted">
+            ¿Estás seguro de que deseas eliminar a <strong>{deleteModal.user?.nombre}</strong>? Esta acción no se puede deshacer.
+          </p>
+          <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-border/50">
+            <Button variant="secondary" onClick={() => setDeleteModal({ isOpen: false, user: null })}>Cancelar</Button>
+            <Button
+              variant="danger"
+              onClick={() => handleDeleteUser(deleteModal.user?.id_usuario)}
+              disabled={actionLoading === deleteModal.user?.id_usuario}
+            >
+              Eliminar
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
       {/* Modal Nuevo Usuario */}
       <Modal isOpen={showNewUserModal} onClose={() => setShowNewUserModal(false)} title="Registrar Nuevo Usuario" maxWidth="max-w-6xl">
         <form onSubmit={handleCreateUser} className="flex flex-col gap-6 mt-4">
-
           <div className="bg-background/30 p-6 rounded-2xl border border-border/50">
             <h4 className="text-base font-bold text-primary mb-6 flex items-center gap-2">
               <User size={18} /> Datos Principales
@@ -829,33 +849,16 @@ export const Usuarios = () => {
           )}
 
           <div className="flex justify-end gap-3 mt-2 pt-6 border-t border-border/50">
-            <Button type="button" variant="outline" onClick={() => setShowNewUserModal(false)}>
+            <Button type="button" variant="secondary" onClick={() => setShowNewUserModal(false)}>
               Cancelar
             </Button>
             <Button type="submit" variant="primary" disabled={creatingUser}>
               {creatingUser ? 'Creando...' : 'Crear Usuario'}
             </Button>
->>>>>>> origin/main
           </div>
         </form>
       </Modal>
 
-<<<<<<< HEAD
-      {/* Modal Eliminar Usuario */}
-      <Modal isOpen={deleteModal.isOpen} onClose={() => setDeleteModal({ isOpen: false, user: null })} title="Eliminar Usuario">
-        <div className="flex flex-col gap-4 mt-4">
-          <p className="text-sm text-text-muted">
-            ¿Estás seguro de que deseas eliminar a <strong>{deleteModal.user?.nombre}</strong>? Esta acción no se puede deshacer.
-          </p>
-          <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-border/50">
-            <Button variant="secondary" onClick={() => setDeleteModal({ isOpen: false, user: null })}>Cancelar</Button>
-            <Button
-              variant="danger"
-              onClick={() => handleDeleteUser(deleteModal.user.id_usuario)}
-              disabled={actionLoading === deleteModal.user?.id_usuario}
-            >
-              Eliminar
-=======
       {/* Modal de Previsualización de Foto de Perfil */}
       <Modal
         isOpen={avatarPreview.isOpen}
@@ -876,7 +879,6 @@ export const Usuarios = () => {
           <div className="flex justify-end w-full pt-4 border-t border-border/50">
             <Button variant="outline" onClick={() => setAvatarPreview({ isOpen: false, url: null, title: '' })}>
               Cerrar
->>>>>>> origin/main
             </Button>
           </div>
         </div>
