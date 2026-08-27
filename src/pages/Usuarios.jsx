@@ -5,6 +5,32 @@ import { Modal } from '../components/ui/Modal';
 import { Users as UsersIcon, User, Truck, Shield, CheckCircle2, MoreVertical, Star, Ban, Car, CreditCard, ExternalLink, AlertTriangle, Pencil, Trash2 } from 'lucide-react';
 import api from '../api/client';
 
+const ImagePreview = ({ file }) => {
+  if (!file) return null;
+  const isImage = file.type.startsWith('image/');
+
+  if (isImage) {
+    const url = URL.createObjectURL(file);
+    return (
+      <div className="mt-3 relative rounded-xl overflow-hidden border border-border h-48 w-full flex items-center justify-center bg-background/50 group">
+        <img src={url} alt="Preview" className="object-cover h-full w-full opacity-90 transition-opacity group-hover:opacity-100" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-3 p-4 rounded-xl border border-border bg-background/50 flex items-center gap-3 text-primary">
+      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+        <ExternalLink size={20} />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold truncate text-text-main">{file.name}</p>
+        <p className="text-xs text-text-muted">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+      </div>
+    </div>
+  );
+};
+
 const rolVariant = {
   'cliente': 'info',
   'cisternero': 'primary',
@@ -15,6 +41,7 @@ const rolLabel = {
   'cliente': 'Cliente',
   'cisternero': 'Conductor',
   'administrador': 'Admin',
+  'soporte': 'Soporte',
 };
 
 export const Usuarios = () => {
@@ -23,10 +50,26 @@ export const Usuarios = () => {
   const [filter, setFilter] = useState('Todos');
   const [actionLoading, setActionLoading] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
+<<<<<<< HEAD
   const [openDropdownId, setOpenDropdownId] = useState(null);
   const [editModal, setEditModal] = useState({ isOpen: false, user: null });
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, user: null });
   const [editForm, setEditForm] = useState({ nombre: '', email: '', telefono: '' });
+=======
+  const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 10, totalPages: 1 });
+  const [pageSize, setPageSize] = useState(10);
+  const [confirmConfig, setConfirmConfig] = useState({ isOpen: false, id: null });
+  const [showNewUserModal, setShowNewUserModal] = useState(false);
+  const [creatingUser, setCreatingUser] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState({ isOpen: false, url: null, title: '' });
+  const [newUserForm, setNewUserForm] = useState({
+    nombre: '', email: '', telefono: '', password: '', rol: 'cliente',
+    identificacion_fiscal: '',
+    rif_personal: '', licencia_conducir: '',
+    vehiculo: { marca: '', modelo: '', placa: '', capacidad_tanque: '' },
+    documento_identidad: null, licencia_documento: null, foto_vehiculo: null, foto_perfil: null
+  });
+>>>>>>> origin/main
 
   const fetchUsuarios = async () => {
     try {
@@ -48,7 +91,7 @@ export const Usuarios = () => {
   }, []);
 
   const getRol = (u) => {
-    if (u.administrador) return 'administrador';
+    if (u.administrador) return u.administrador.nivel_permiso === 'soporte' ? 'soporte' : 'administrador';
     if (u.cisternero) return 'cisternero';
     if (u.cliente) return 'cliente';
     return 'desconocido';
@@ -102,14 +145,69 @@ export const Usuarios = () => {
     }
   };
 
-  const roles = ['Todos', 'Cliente', 'Conductor', 'Admin'];
+  const handleCreateUser = async (e) => {
+    e.preventDefault();
+    try {
+      setCreatingUser(true);
+
+      const formData = new FormData();
+      formData.append('nombre', newUserForm.nombre);
+      formData.append('email', newUserForm.email);
+      formData.append('telefono', newUserForm.telefono);
+      formData.append('password', newUserForm.password);
+      formData.append('rol', newUserForm.rol);
+
+      if (newUserForm.rol === 'cliente') {
+        formData.append('identificacion_fiscal', newUserForm.identificacion_fiscal);
+      } else if (newUserForm.rol === 'cisternero') {
+        formData.append('rif_personal', newUserForm.rif_personal);
+        formData.append('licencia_conducir', newUserForm.licencia_conducir);
+        formData.append('vehiculo_marca', newUserForm.vehiculo.marca);
+        formData.append('vehiculo_modelo', newUserForm.vehiculo.modelo);
+        formData.append('vehiculo_placa', newUserForm.vehiculo.placa);
+        formData.append('vehiculo_capacidad', newUserForm.vehiculo.capacidad_tanque);
+
+        if (newUserForm.documento_identidad) formData.append('documento_identidad', newUserForm.documento_identidad);
+        if (newUserForm.licencia_documento) formData.append('licencia_documento', newUserForm.licencia_documento);
+        if (newUserForm.foto_vehiculo) formData.append('foto_vehiculo', newUserForm.foto_vehiculo);
+      }
+
+      if (newUserForm.foto_perfil) {
+        formData.append('foto_perfil', newUserForm.foto_perfil);
+      }
+
+      await api.post('/admin/usuarios', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      toast.success('Usuario creado exitosamente');
+      setShowNewUserModal(false);
+      setNewUserForm({
+        nombre: '', email: '', telefono: '', password: '', rol: 'cliente',
+        identificacion_fiscal: '', rif_personal: '', licencia_conducir: '',
+        vehiculo: { marca: '', modelo: '', placa: '', capacidad_tanque: '' },
+        documento_identidad: null, licencia_documento: null, foto_vehiculo: null, foto_perfil: null
+      });
+      fetchUsuarios(1, pageSize, filter);
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Error al crear usuario');
+    } finally {
+      setCreatingUser(false);
+    }
+  };
+
+  const roles = ['Todos', 'Cliente', 'Conductor', 'Admin', 'Soporte'];
   const filtered = filter === 'Todos'
     ? usuarios
     : usuarios.filter(u => {
       const rol = getRol(u);
       return (filter === 'Cliente' && rol === 'cliente') ||
         (filter === 'Conductor' && rol === 'cisternero') ||
+<<<<<<< HEAD
         (filter === 'Admin' && rol === 'administrador');
+=======
+        (filter === 'Admin' && rol === 'administrador') ||
+        (filter === 'Soporte' && rol === 'soporte');
+>>>>>>> origin/main
     });
 
   const getUserIcon = (rol) => {
@@ -130,6 +228,9 @@ export const Usuarios = () => {
           </h2>
           <p className="text-text-muted text-sm mt-1">Administra accesos, roles y saldos de todos los participantes de la plataforma.</p>
         </div>
+        <Button onClick={() => setShowNewUserModal(true)} className="flex items-center gap-2 px-6">
+          <User size={18} /> Nuevo Usuario
+        </Button>
       </div>
 
       {/* Advanced Filters Bar (Glassmorphism) */}
@@ -186,8 +287,20 @@ export const Usuarios = () => {
                 <div className="flex justify-between items-center gap-2 relative z-10">
                   <div className="flex gap-3 items-center min-w-0 flex-1">
                     <div className="relative flex-shrink-0">
-                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center border ${isBanned ? 'bg-background border-status-error/30 opacity-70' : 'bg-background-card border-border'}`}>
-                        {getUserIcon(rol)}
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center border overflow-hidden ${isBanned ? 'bg-background border-status-error/30 opacity-70' : 'bg-background-card border-border'}`}>
+                        {u.foto_url ? (
+                          <img
+                            src={u.foto_url}
+                            alt={u.nombre}
+                            className="w-full h-full object-cover cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setAvatarPreview({ isOpen: true, url: u.foto_url, title: `Foto de Perfil - ${u.nombre}` });
+                            }}
+                          />
+                        ) : (
+                          getUserIcon(rol)
+                        )}
                       </div>
                       <div className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-background-card ${isBanned ? 'bg-status-error' : 'bg-status-success'}`}></div>
                     </div>
@@ -272,7 +385,7 @@ export const Usuarios = () => {
                 <div className="flex items-center gap-3 mt-auto pt-4 relative z-10">
                   <button
                     onClick={() => setSelectedUser(u)}
-                    className={`flex-1 bg-transparent border border-border py-2 rounded-lg transition-colors text-sm font-semibold flex justify-center items-center gap-2 ${isBanned ? 'hover:border-status-error/50 text-status-error hover:bg-status-error/10' : 'hover:border-primary hover:text-primary text-text-muted'}`}
+                    className={`flex-1 bg-transparent border border-border py-2 rounded-lg transition-colors text-sm font-semibold flex justify-center items-center gap-2 ${isBanned ? 'hover:border-status-error/50 text-status-error hover:bg-status-error/10' : 'hover:border-primary hover:text-primary text-text-muted cursor-pointer'}`}
                   >
                     {isBanned ? 'Gestionar Estado' : 'Ver Detalles'}
                   </button>
@@ -315,8 +428,19 @@ export const Usuarios = () => {
         {selectedUser && (
           <div className="flex flex-col gap-6 mt-4">
             <div className="flex items-center gap-4 pb-4 border-b border-border/50">
-              <div className="w-16 h-16 rounded-2xl bg-background-card border border-border flex items-center justify-center">
-                {getUserIcon(getRol(selectedUser))}
+              <div className="w-16 h-16 rounded-2xl bg-background-card border border-border flex items-center justify-center overflow-hidden shrink-0">
+                {selectedUser.foto_url ? (
+                  <img
+                    src={selectedUser.foto_url}
+                    alt={selectedUser.nombre}
+                    className="w-full h-full object-cover cursor-zoom-in"
+                    onClick={() => {
+                      setAvatarPreview({ isOpen: true, url: selectedUser.foto_url, title: `Foto de Perfil - ${selectedUser.nombre}` });
+                    }}
+                  />
+                ) : (
+                  getUserIcon(getRol(selectedUser))
+                )}
               </div>
               <div>
                 <h3 className="text-xl font-bold text-text-main">{selectedUser.nombre}</h3>
@@ -422,6 +546,7 @@ export const Usuarios = () => {
         )}
       </Modal>
 
+<<<<<<< HEAD
       {/* Modal Editar Usuario */}
       <Modal isOpen={editModal.isOpen} onClose={() => setEditModal({ isOpen: false, user: null })} title="Editar Usuario">
         <form onSubmit={handleEditUser} className="flex flex-col gap-4 mt-4">
@@ -457,10 +582,265 @@ export const Usuarios = () => {
           <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-border/50">
             <Button type="button" variant="secondary" onClick={() => setEditModal({ isOpen: false, user: null })}>Cancelar</Button>
             <Button type="submit" disabled={actionLoading === editModal.user?.id_usuario}>Guardar Cambios</Button>
+=======
+      <ConfirmModal
+        isOpen={confirmConfig.isOpen}
+        onClose={() => setConfirmConfig({ isOpen: false, id: null })}
+        onConfirm={handleHabilitar}
+        title="Habilitar Cuenta"
+        message="¿Estás seguro de que deseas habilitar esta cuenta? El usuario podrá volver a acceder al sistema."
+        variant="success"
+      />
+
+      {/* Modal Nuevo Usuario */}
+      <Modal isOpen={showNewUserModal} onClose={() => setShowNewUserModal(false)} title="Registrar Nuevo Usuario" maxWidth="max-w-6xl">
+        <form onSubmit={handleCreateUser} className="flex flex-col gap-6 mt-4">
+
+          <div className="bg-background/30 p-6 rounded-2xl border border-border/50">
+            <h4 className="text-base font-bold text-primary mb-6 flex items-center gap-2">
+              <User size={18} /> Datos Principales
+            </h4>
+
+            <div className="flex flex-col lg:flex-row gap-8 items-start">
+              {/* Columna Izquierda: Uploader Circular del Avatar */}
+              <div className="flex flex-col items-center gap-3 shrink-0 w-full lg:w-36">
+                <span className="text-xs font-bold text-text-muted uppercase tracking-wider text-center">Foto de Perfil</span>
+                <div
+                  onClick={() => document.getElementById('avatar-upload-input').click()}
+                  className="relative w-28 h-28 rounded-full border-2 border-dashed border-primary/30 hover:border-primary/60 bg-background-card/50 flex flex-col items-center justify-center cursor-pointer overflow-hidden transition-all group hover:scale-105 shadow-[0_0_15px_rgba(59,130,246,0.05)]"
+                >
+                  {newUserForm.foto_perfil ? (
+                    <img
+                      src={URL.createObjectURL(newUserForm.foto_perfil)}
+                      alt="Avatar Preview"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center text-text-muted group-hover:text-primary transition-colors p-3 text-center">
+                      <User size={28} className="opacity-50 group-hover:opacity-80 transition-opacity mb-1" />
+                      <span className="text-[10px] font-bold uppercase tracking-wider">Subir Foto</span>
+                    </div>
+                  )}
+                  {/* Hover Overlay */}
+                  <div className="absolute inset-0 bg-black/55 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <User size={20} className="text-white mb-0.5" />
+                    <span className="text-[9px] text-white font-bold uppercase tracking-wider">Cambiar</span>
+                  </div>
+                </div>
+                <input
+                  id="avatar-upload-input"
+                  type="file" accept=".jpg,.jpeg,.png,.webp"
+                  className="hidden"
+                  onChange={(e) => setNewUserForm({ ...newUserForm, foto_perfil: e.target.files[0] })}
+                />
+                <p className="text-[10px] text-text-muted text-center max-w-[120px]">Formatos: JPG, PNG o WEBP (opcional)</p>
+              </div>
+
+              {/* Columna Derecha: Campos del Formulario */}
+              <div className="flex-grow w-full grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-semibold text-text-muted">Rol del Usuario</label>
+                  <select
+                    value={newUserForm.rol}
+                    onChange={(e) => setNewUserForm({ ...newUserForm, rol: e.target.value })}
+                    className="px-4 py-2.5 rounded-xl bg-background-card border border-border text-text-main focus:border-primary outline-none transition-colors"
+                  >
+                    <option value="cliente">Cliente</option>
+                    <option value="cisternero">Conductor</option>
+                    <option value="administrador">Administrador</option>
+                    <option value="soporte">Soporte</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1 md:col-span-2">
+                  <label className="text-sm font-semibold text-text-muted">Nombre Completo</label>
+                  <input
+                    type="text" required
+                    value={newUserForm.nombre}
+                    onChange={(e) => setNewUserForm({ ...newUserForm, nombre: e.target.value })}
+                    className="px-4 py-2.5 rounded-xl bg-background-card border border-border text-text-main focus:border-primary outline-none transition-colors"
+                    placeholder="Ej. Juan Pérez"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-semibold text-text-muted">Correo Electrónico</label>
+                  <input
+                    type="email" required
+                    value={newUserForm.email}
+                    onChange={(e) => setNewUserForm({ ...newUserForm, email: e.target.value })}
+                    className="px-4 py-2.5 rounded-xl bg-background-card border border-border text-text-main focus:border-primary outline-none transition-colors"
+                    placeholder="correo@ejemplo.com"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-semibold text-text-muted">Teléfono</label>
+                  <input
+                    type="tel" required
+                    value={newUserForm.telefono}
+                    onChange={(e) => setNewUserForm({ ...newUserForm, telefono: e.target.value })}
+                    className="px-4 py-2.5 rounded-xl bg-background-card border border-border text-text-main focus:border-primary outline-none transition-colors"
+                    placeholder="Ej. 04141234567"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-semibold text-text-muted">Contraseña Temporal</label>
+                  <input
+                    type="password" required minLength="6"
+                    value={newUserForm.password}
+                    onChange={(e) => setNewUserForm({ ...newUserForm, password: e.target.value })}
+                    className="px-4 py-2.5 rounded-xl bg-background-card border border-border text-text-main focus:border-primary outline-none transition-colors"
+                    placeholder="Mínimo 6 caracteres"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Campos Dinámicos */}
+          {newUserForm.rol === 'cliente' && (
+            <div className="bg-primary/5 p-5 rounded-2xl border border-primary/20 animate-fade-in">
+              <h4 className="text-base font-bold text-primary mb-4">Información Fiscal</h4>
+              <div className="flex flex-col gap-1 max-w-md">
+                <label className="text-sm font-semibold text-text-muted">RIF / Cédula de Identidad <span className="text-status-error">*</span></label>
+                <input
+                  type="text" required
+                  value={newUserForm.identificacion_fiscal}
+                  onChange={(e) => setNewUserForm({ ...newUserForm, identificacion_fiscal: e.target.value })}
+                  className="px-4 py-2.5 rounded-xl bg-background-card border border-border text-text-main focus:border-primary outline-none transition-colors"
+                  placeholder="Ej. J-123456789"
+                />
+              </div>
+            </div>
+          )}
+
+          {newUserForm.rol === 'cisternero' && (
+            <div className="bg-status-warning/5 p-5 rounded-2xl border border-status-warning/20 animate-fade-in">
+              <h4 className="text-base font-bold text-status-warning mb-4 flex items-center gap-2">
+                <Truck size={18} /> Datos del Conductor y Vehículo
+              </h4>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Lado Izquierdo: Formularios de Texto */}
+                <div className="flex flex-col gap-5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-sm font-semibold text-text-muted">RIF Personal <span className="text-status-error">*</span></label>
+                      <input
+                        type="text" required
+                        value={newUserForm.rif_personal}
+                        onChange={(e) => setNewUserForm({ ...newUserForm, rif_personal: e.target.value })}
+                        className="px-4 py-2.5 rounded-xl bg-background-card border border-border text-text-main focus:border-status-warning outline-none transition-colors"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-sm font-semibold text-text-muted">Licencia de Conducir <span className="text-status-error">*</span></label>
+                      <input
+                        type="text" required
+                        value={newUserForm.licencia_conducir}
+                        onChange={(e) => setNewUserForm({ ...newUserForm, licencia_conducir: e.target.value })}
+                        className="px-4 py-2.5 rounded-xl bg-background-card border border-border text-text-main focus:border-status-warning outline-none transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-xl border border-border/50 bg-background/50">
+                    <h5 className="text-sm font-bold text-text-main mb-3">Especificaciones del Camión</h5>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-sm font-semibold text-text-muted">Marca <span className="text-status-error">*</span></label>
+                        <input
+                          type="text" required
+                          value={newUserForm.vehiculo.marca}
+                          onChange={(e) => setNewUserForm({ ...newUserForm, vehiculo: { ...newUserForm.vehiculo, marca: e.target.value } })}
+                          className="px-4 py-2.5 rounded-xl bg-background-card border border-border text-text-main focus:border-status-warning outline-none transition-colors"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-sm font-semibold text-text-muted">Modelo <span className="text-status-error">*</span></label>
+                        <input
+                          type="text" required
+                          value={newUserForm.vehiculo.modelo}
+                          onChange={(e) => setNewUserForm({ ...newUserForm, vehiculo: { ...newUserForm.vehiculo, modelo: e.target.value } })}
+                          className="px-4 py-2.5 rounded-xl bg-background-card border border-border text-text-main focus:border-status-warning outline-none transition-colors"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-sm font-semibold text-text-muted">Placa <span className="text-status-error">*</span></label>
+                        <input
+                          type="text" required
+                          value={newUserForm.vehiculo.placa}
+                          onChange={(e) => setNewUserForm({ ...newUserForm, vehiculo: { ...newUserForm.vehiculo, placa: e.target.value } })}
+                          className="px-4 py-2.5 rounded-xl bg-background-card border border-border text-text-main focus:border-status-warning outline-none transition-colors uppercase"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-sm font-semibold text-text-muted">Capacidad (Lts) <span className="text-status-error">*</span></label>
+                        <input
+                          type="number" required min="1"
+                          value={newUserForm.vehiculo.capacidad_tanque}
+                          onChange={(e) => setNewUserForm({ ...newUserForm, vehiculo: { ...newUserForm.vehiculo, capacidad_tanque: e.target.value } })}
+                          className="px-4 py-2.5 rounded-xl bg-background-card border border-border text-text-main focus:border-status-warning outline-none transition-colors"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Lado Derecho: Archivos y Previews */}
+                <div className="flex flex-col gap-5">
+                  <div className="flex flex-col gap-1 bg-background-card p-4 rounded-xl border border-border">
+                    <label className="text-sm font-bold text-text-main">Foto de Cédula / Identidad <span className="text-status-error">*</span></label>
+                    <p className="text-xs text-text-muted mb-2">Sube una foto clara del documento, en formato JPG, PNG o PDF.</p>
+                    <input
+                      type="file" required accept=".jpg,.jpeg,.png,.pdf"
+                      onChange={(e) => setNewUserForm({ ...newUserForm, documento_identidad: e.target.files[0] })}
+                      className="text-sm text-text-muted file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-status-warning/10 file:text-status-warning hover:file:bg-status-warning/20 transition-colors cursor-pointer"
+                    />
+                    <ImagePreview file={newUserForm.documento_identidad} />
+                  </div>
+
+                  <div className="flex flex-col gap-1 bg-background-card p-4 rounded-xl border border-border">
+                    <label className="text-sm font-bold text-text-main">Foto de Licencia de Conducir <span className="text-status-error">*</span></label>
+                    <p className="text-xs text-text-muted mb-2">Debe estar vigente y ser legible.</p>
+                    <input
+                      type="file" required accept=".jpg,.jpeg,.png,.pdf"
+                      onChange={(e) => setNewUserForm({ ...newUserForm, licencia_documento: e.target.files[0] })}
+                      className="text-sm text-text-muted file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-status-warning/10 file:text-status-warning hover:file:bg-status-warning/20 transition-colors cursor-pointer"
+                    />
+                    <ImagePreview file={newUserForm.licencia_documento} />
+                  </div>
+
+                  <div className="flex flex-col gap-1 bg-background-card p-4 rounded-xl border border-border">
+                    <label className="text-sm font-bold text-text-main">Foto del Vehículo <span className="text-status-error">*</span></label>
+                    <p className="text-xs text-text-muted mb-2">Foto visible y legible del camión cisterna.</p>
+                    <input
+                      type="file" required accept=".jpg,.jpeg,.png,.pdf"
+                      onChange={(e) => setNewUserForm({ ...newUserForm, foto_vehiculo: e.target.files[0] })}
+                      className="text-sm text-text-muted file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-status-warning/10 file:text-status-warning hover:file:bg-status-warning/20 transition-colors cursor-pointer"
+                    />
+                    <ImagePreview file={newUserForm.foto_vehiculo} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-3 mt-2 pt-6 border-t border-border/50">
+            <Button type="button" variant="outline" onClick={() => setShowNewUserModal(false)}>
+              Cancelar
+            </Button>
+            <Button type="submit" variant="primary" disabled={creatingUser}>
+              {creatingUser ? 'Creando...' : 'Crear Usuario'}
+            </Button>
+>>>>>>> origin/main
           </div>
         </form>
       </Modal>
 
+<<<<<<< HEAD
       {/* Modal Eliminar Usuario */}
       <Modal isOpen={deleteModal.isOpen} onClose={() => setDeleteModal({ isOpen: false, user: null })} title="Eliminar Usuario">
         <div className="flex flex-col gap-4 mt-4">
@@ -475,6 +855,28 @@ export const Usuarios = () => {
               disabled={actionLoading === deleteModal.user?.id_usuario}
             >
               Eliminar
+=======
+      {/* Modal de Previsualización de Foto de Perfil */}
+      <Modal
+        isOpen={avatarPreview.isOpen}
+        onClose={() => setAvatarPreview({ isOpen: false, url: null, title: '' })}
+        title={avatarPreview.title}
+        maxWidth="max-w-xl"
+      >
+        <div className="flex flex-col items-center justify-center gap-4">
+          {avatarPreview.url && (
+            <div className="w-full max-h-[70vh] rounded-2xl overflow-hidden border border-border bg-background/50 flex items-center justify-center">
+              <img
+                src={avatarPreview.url}
+                alt="Avatar"
+                className="w-full h-auto max-h-[70vh] object-contain"
+              />
+            </div>
+          )}
+          <div className="flex justify-end w-full pt-4 border-t border-border/50">
+            <Button variant="outline" onClick={() => setAvatarPreview({ isOpen: false, url: null, title: '' })}>
+              Cerrar
+>>>>>>> origin/main
             </Button>
           </div>
         </div>

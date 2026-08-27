@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
-export const Modal = ({ isOpen, onClose, title, children }) => {
+export const Modal = ({ isOpen, onClose, title, children, maxWidth = 'max-w-[500px]' }) => {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') onClose();
@@ -22,7 +22,7 @@ export const Modal = ({ isOpen, onClose, title, children }) => {
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-fade-in" style={{ position: 'fixed' }}>
       <div 
-        className="glass-card rounded-2xl w-full max-w-[500px] shadow-2xl relative z-10 max-h-[90vh] overflow-y-auto"
+        className={`glass-card rounded-2xl w-full ${maxWidth} shadow-2xl relative z-10 max-h-[90vh] overflow-hidden flex flex-col`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-6 border-b border-outline-variant/30 flex justify-between items-center bg-gradient-to-r from-primary/10 to-transparent rounded-t-2xl shrink-0">

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useAuth } from '../hooks/useAuth';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
@@ -18,8 +19,8 @@ export const Tarifas = () => {
   const [submitting, setSubmitting] = useState(false);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null });
 
-  const user = JSON.parse(localStorage.getItem('aquaflow_admin_user') || '{}');
-  const id_admin = user.administrador?.id_admin || user.id_usuario;
+  const { user } = useAuth();
+  const id_admin = user?.user_metadata?.id_usuario;
 
   const fetchBcv = async () => {
     setBcvLoading(true);
