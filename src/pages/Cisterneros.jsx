@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
+import { Modal } from '../components/ui/Modal';
 import { Check, X, User, Truck, Phone, Mail, Calendar, FileText, Badge as BadgeIcon, AlertCircle } from 'lucide-react';
 import api from '../api/client';
 
@@ -208,6 +209,33 @@ export const Cisterneros = () => {
           ))}
         </div>
       )}
+
+      {/* Modal para Rechazar Conductor */}
+      <Modal
+        isOpen={rejectModal.isOpen}
+        onClose={() => setRejectModal({ isOpen: false, id: null })}
+        title="Rechazar solicitud del conductor"
+      >
+        <div className="flex flex-col gap-4 mt-4">
+          <textarea
+            value={motivoRechazo}
+            onChange={(e) => setMotivoRechazo(e.target.value)}
+            placeholder="Motivo del rechazo..."
+            className="w-full bg-background/50 border border-border rounded-xl p-3 text-sm text-text-main resize-none focus:border-status-error focus:ring-1 focus:ring-status-error outline-none"
+            rows={4}
+          />
+          <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-border/50">
+            <Button variant="secondary" onClick={() => setRejectModal({ isOpen: false, id: null })}>Cancelar</Button>
+            <Button 
+              className="bg-status-error text-white hover:bg-status-error/80 transition-all rounded-lg cursor-pointer px-5 py-2.5 text-sm font-medium"
+              onClick={() => handleValidation(rejectModal.id, false, motivoRechazo)}
+              disabled={!motivoRechazo.trim() || actionLoading === rejectModal.id}
+            >
+              Confirmar rechazo
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };
