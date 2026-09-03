@@ -10,7 +10,8 @@ import {
   Gift,
   AlertTriangle,
   Users,
-  LogOut
+  LogOut,
+  Route
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -20,6 +21,7 @@ const navItems = [
   { name: 'Conductores', path: '/cisterneros', icon: Truck },
   { name: 'Pagos', path: '/pagos', icon: CreditCard },
   { name: 'Tarifas', path: '/tarifas', icon: Tag },
+  { name: 'Fletes', path: '/fletes', icon: Route },
   { name: 'Promociones', path: '/promociones', icon: Gift },
   { name: 'Incidencias', path: '/incidencias', icon: AlertTriangle },
   { name: 'Usuarios', path: '/usuarios', icon: Users },
