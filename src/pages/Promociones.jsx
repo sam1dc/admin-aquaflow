@@ -403,8 +403,9 @@ export const Promociones = () => {
         isOpen={usosModal.isOpen}
         onClose={() => setUsosModal({ isOpen: false, promo: null, data: null, loading: false })}
         title={`Usos del código: ${usosModal.promo?.codigo ?? ''}`}
+        maxWidth="max-w-[700px]"
       >
-        <div className="flex flex-col gap-4 mt-2 min-w-[520px]">
+        <div className="flex flex-col gap-4 mt-2 w-full">
           {usosModal.loading ? (
             <div className="text-center py-12 text-text-muted animate-pulse">Cargando seguimiento...</div>
           ) : !usosModal.data ? (
