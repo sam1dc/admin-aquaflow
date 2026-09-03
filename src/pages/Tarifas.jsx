@@ -18,6 +18,7 @@ export const Tarifas = () => {
   const [form, setForm] = useState({ volumen_litros: '', precio_base: '', activo: true });
   const [submitting, setSubmitting] = useState(false);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null });
+  const [deleteResult, setDeleteResult] = useState(null); // { type: 'deleted'|'deactivated', message: string }
 
   const { user } = useAuth();
   const id_admin = user?.user_metadata?.id_usuario;
@@ -64,17 +65,26 @@ export const Tarifas = () => {
 
   const handleDelete = async (id_tarifa, confirmed = false) => {
     if (!confirmed) {
+      setDeleteResult(null);
       setDeleteModal({ isOpen: true, id: id_tarifa });
       return;
     }
 
     try {
       const res = await api.delete(`/admin/tarifas/${id_tarifa}`);
-      alert(res.data?.message || 'Tarifa eliminada exitosamente');
+      const wasDeactivated = res.data?.data?.activo === false;
+      setDeleteResult({
+        type: wasDeactivated ? 'deactivated' : 'deleted',
+        message: wasDeactivated
+          ? 'Esta tarifa tiene pedidos asociados y no puede eliminarse. Fue marcada como Inactiva para que no aparezca disponible en la app.'
+          : 'La tarifa fue eliminada permanentemente de la base de datos.',
+      });
       fetchTarifas();
-      setDeleteModal({ isOpen: false, id: null });
     } catch (error) {
-      alert(`Error al eliminar tarifa: ${error.response?.data?.error || error.message}`);
+      setDeleteResult({
+        type: 'error',
+        message: error.response?.data?.error || 'Error al eliminar la tarifa.',
+      });
     }
   };
 
@@ -350,22 +360,41 @@ export const Tarifas = () => {
       {/* Modal para Eliminar Tarifa */}
       <Modal
         isOpen={deleteModal.isOpen}
-        onClose={() => setDeleteModal({ isOpen: false, id: null })}
-        title="Eliminar Tarifa"
+        onClose={() => { setDeleteModal({ isOpen: false, id: null }); setDeleteResult(null); }}
+        title={deleteResult ? (deleteResult.type === 'error' ? 'Error' : 'Operación completada') : 'Eliminar Tarifa'}
       >
         <div className="flex flex-col gap-4 mt-4">
-          <p className="text-sm text-text-muted">
-            ¿Estás seguro de que deseas eliminar esta tarifa? Esta acción no se puede deshacer.
-          </p>
-          <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-border/50">
-            <Button variant="secondary" onClick={() => setDeleteModal({ isOpen: false, id: null })}>Cancelar</Button>
-            <Button
-              variant="danger"
-              onClick={() => handleDelete(deleteModal.id, true)}
-            >
-              Eliminar
-            </Button>
-          </div>
+          {!deleteResult ? (
+            <>
+              <p className="text-sm text-text-muted">
+                ¿Confirmas que deseas eliminar esta tarifa?
+              </p>
+              <div className="text-xs text-text-muted/70 bg-background/60 rounded-xl p-3 border border-border/40 space-y-1">
+                <p>✅ <strong>Si no tiene pedidos asociados:</strong> se eliminará permanentemente.</p>
+                <p>⚠️ <strong>Si tiene pedidos asociados:</strong> solo se marcará como Inactiva (no aparecerá en la app pero queda en el historial).</p>
+              </div>
+              <div className="flex justify-end gap-3 pt-4 border-t border-border/50">
+                <Button variant="secondary" onClick={() => { setDeleteModal({ isOpen: false, id: null }); setDeleteResult(null); }}>Cancelar</Button>
+                <Button variant="danger" onClick={() => handleDelete(deleteModal.id, true)}>Confirmar</Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className={`flex items-start gap-3 p-4 rounded-xl border ${
+                deleteResult.type === 'deleted'   ? 'bg-status-success/10 border-status-success/20 text-status-success' :
+                deleteResult.type === 'deactivated' ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400' :
+                'bg-status-error/10 border-status-error/20 text-status-error'
+              }`}>
+                <span className="text-xl shrink-0">
+                  {deleteResult.type === 'deleted' ? '🗑️' : deleteResult.type === 'deactivated' ? '⚠️' : '❌'}
+                </span>
+                <p className="text-sm">{deleteResult.message}</p>
+              </div>
+              <div className="flex justify-end pt-2">
+                <Button variant="secondary" onClick={() => { setDeleteModal({ isOpen: false, id: null }); setDeleteResult(null); }}>Cerrar</Button>
+              </div>
+            </>
+          )}
         </div>
       </Modal>
     </div>
