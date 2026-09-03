@@ -31,16 +31,20 @@ export const Header = () => {
   useEffect(() => {
     fetchNotifications();
     
-    let socket;
+    let socketInstance;
+    let isMounted = true;
+    
     const connectSocket = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session?.access_token) {
+      // Solo creamos la conexión si el componente no se ha desmontado mientras esperábamos
+      if (session?.access_token && isMounted) {
         const socketUrl = import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:3000';
-        socket = io(socketUrl, {
+        socketInstance = io(socketUrl, {
           auth: { token: session.access_token },
+          transports: ['websocket', 'polling'], // Forzar WebSocket para eliminar el ruido de polling
         });
 
-        socket.on('notification:new', (notif) => {
+        socketInstance.on('notification:new', (notif) => {
           setNotifications(prev => [
             {
               id: notif.id_notificacion,
@@ -59,7 +63,8 @@ export const Header = () => {
     connectSocket();
 
     return () => {
-      if (socket) socket.disconnect();
+      isMounted = false;
+      if (socketInstance) socketInstance.disconnect();
     };
   }, []);
 
