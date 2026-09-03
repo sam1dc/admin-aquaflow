@@ -48,6 +48,8 @@ export const NotificationDropdown = ({ isOpen, onClose, notifications, setNotifi
 
   useEffect(() => {
     const handleClickOutside = (event) => {
+      const bellBtn = document.getElementById('notification-bell-btn');
+      if (bellBtn && bellBtn.contains(event.target)) return;
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         onClose();
       }
@@ -100,8 +102,8 @@ export const NotificationDropdown = ({ isOpen, onClose, notifications, setNotifi
       style={{
         width: '480px',
         maxHeight: '620px',
-        background: 'var(--background-card)',
-        border: '1px solid var(--border)',
+        background: '#111E2E',
+        border: '1px solid rgba(255,255,255,0.08)',
         borderRadius: '16px',
         boxShadow: '0 25px 60px -12px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.03)',
         overflow: 'hidden',

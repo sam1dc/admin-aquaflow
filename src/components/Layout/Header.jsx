@@ -93,6 +93,7 @@ export const Header = () => {
       <div className="flex items-center gap-6 relative">
         <div className="relative">
           <button 
+            id="notification-bell-btn"
             onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
             className="p-2 text-text-muted hover:text-white transition-colors rounded-full hover:bg-white/5 cursor-pointer relative"
           >
