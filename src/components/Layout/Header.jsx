@@ -44,6 +44,14 @@ export const Header = () => {
           transports: ['websocket', 'polling'], // Forzar WebSocket para eliminar el ruido de polling
         });
 
+        socketInstance.on('connect', () => {
+          console.log('✅ Conectado al servidor de notificaciones (WebSocket)');
+        });
+
+        socketInstance.on('connect_error', (err) => {
+          console.error('❌ Error conectando al socket:', err.message);
+        });
+
         socketInstance.on('notification:new', (notif) => {
           setNotifications(prev => [
             {
