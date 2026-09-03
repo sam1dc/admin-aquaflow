@@ -210,7 +210,6 @@ export const Promociones = () => {
                   <th className="p-4 whitespace-nowrap">Tipo</th>
                   <th className="p-4 whitespace-nowrap">Valor</th>
                   <th className="p-4 whitespace-nowrap">Validez</th>
-                  <th className="p-4 whitespace-nowrap">Usos / Límite</th>
                   <th className="p-4 whitespace-nowrap">Estado</th>
                   <th className="p-4 text-right whitespace-nowrap">Acciones</th>
                 </tr>
@@ -218,9 +217,6 @@ export const Promociones = () => {
               <tbody className="text-sm">
                 {promos.map((p) => {
                   const activa = isActive(p);
-                  const usos = p._count?.usos || 0;
-                  const porcentajeUso = p.limite_usos > 0 ? Math.min((usos / p.limite_usos) * 100, 100) : 0;
-                  const isExhausted = usos >= p.limite_usos;
 
                   return (
                     <tr key={p.id_promocion} className={`border-b border-border/30 hover:bg-white/5 transition-colors ${!activa ? 'opacity-70' : ''}`}>
@@ -241,19 +237,7 @@ export const Promociones = () => {
                       <td className="p-4 text-xs text-text-muted">
                         {new Date(p.fecha_inicio).toLocaleDateString('es-VE')} - {new Date(p.fecha_fin).toLocaleDateString('es-VE')}
                       </td>
-                      <td className="p-4">
-                        <div className="flex items-center gap-2">
-                          <div className="w-16 h-1.5 bg-background rounded-full overflow-hidden border border-border">
-                            <div
-                              className={`h-full ${isExhausted ? 'bg-status-error' : 'bg-primary'}`}
-                              style={{ width: `${porcentajeUso}%` }}
-                            ></div>
-                          </div>
-                          <span className={`text-xs font-semibold ${isExhausted ? 'text-status-error' : 'text-text-muted'}`}>
-                            {usos}/{p.limite_usos}
-                          </span>
-                        </div>
-                      </td>
+
                       <td className="p-4">
                         {activa ? (
                           <span className="bg-status-success/10 text-status-success px-3 py-1 rounded-full text-xs font-bold border border-status-success/20">
