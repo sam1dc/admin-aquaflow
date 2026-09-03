@@ -3,7 +3,7 @@ import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
-import { Gift, Plus, Pencil, Trash2, Percent, Banknote, Crown, Ticket, Users, TrendingUp } from 'lucide-react';
+import { Gift, Plus, Pencil, Trash2, Percent, Banknote, Crown, Ticket, Users, TrendingUp, Eye, X, User, Calendar, DollarSign } from 'lucide-react';
 import api from '../api/client';
 
 export const Promociones = () => {
@@ -22,6 +22,7 @@ export const Promociones = () => {
   });
   const [submitting, setSubmitting] = useState(false);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null });
+  const [usosModal, setUsosModal] = useState({ isOpen: false, promo: null, data: null, loading: false });
 
   const fetchPromos = async () => {
     try {
@@ -76,6 +77,16 @@ export const Promociones = () => {
       setDeleteModal({ isOpen: false, id: null });
     } catch (error) {
       alert(`Error: ${error.response?.data?.error || error.message}`);
+    }
+  };
+
+  const handleVerUsos = async (promo) => {
+    setUsosModal({ isOpen: true, promo, data: null, loading: true });
+    try {
+      const res = await api.get(`/admin/promociones/${promo.id_promocion}/usos`);
+      setUsosModal({ isOpen: true, promo, data: res.data.data, loading: false });
+    } catch (e) {
+      setUsosModal({ isOpen: true, promo, data: null, loading: false });
     }
   };
 
@@ -256,6 +267,9 @@ export const Promociones = () => {
                       </td>
                       <td className="p-4 text-right">
                         <div className="flex items-center justify-end gap-2">
+                          <button onClick={() => handleVerUsos(p)} className="p-2 text-text-muted hover:text-status-location transition-colors" title="Ver usos">
+                            <Eye size={16} />
+                          </button>
                           <button onClick={() => handleOpenEdit(p)} className="p-2 text-text-muted hover:text-primary transition-colors" title="Editar">
                             <Pencil size={16} />
                           </button>
@@ -397,6 +411,91 @@ export const Promociones = () => {
               Eliminar
             </Button>
           </div>
+        </div>
+      </Modal>
+
+      {/* Modal de Seguimiento de Usos */}
+      <Modal
+        isOpen={usosModal.isOpen}
+        onClose={() => setUsosModal({ isOpen: false, promo: null, data: null, loading: false })}
+        title={`Usos del código: ${usosModal.promo?.codigo ?? ''}`}
+      >
+        <div className="flex flex-col gap-4 mt-2 min-w-[520px]">
+          {usosModal.loading ? (
+            <div className="text-center py-12 text-text-muted animate-pulse">Cargando seguimiento...</div>
+          ) : !usosModal.data ? (
+            <div className="text-center py-8 text-status-error text-sm">No se pudo cargar la información.</div>
+          ) : (
+            <>
+              {/* Stats rápidos */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-background/60 rounded-xl p-3 border border-border/40 text-center">
+                  <p className="text-2xl font-bold text-primary">{usosModal.data.total_usos}</p>
+                  <p className="text-xs text-text-muted mt-0.5">Usos totales</p>
+                </div>
+                <div className="bg-background/60 rounded-xl p-3 border border-border/40 text-center">
+                  <p className="text-2xl font-bold text-text-main">{usosModal.promo?.limite_usos}</p>
+                  <p className="text-xs text-text-muted mt-0.5">Límite por usuario</p>
+                </div>
+                <div className="bg-background/60 rounded-xl p-3 border border-border/40 text-center">
+                  <p className="text-2xl font-bold text-status-success">
+                    ${usosModal.data.usos.reduce((s, u) => s + u.monto_descontado, 0).toFixed(2)}
+                  </p>
+                  <p className="text-xs text-text-muted mt-0.5">Total descontado</p>
+                </div>
+              </div>
+
+              {/* Tabla de usos */}
+              {usosModal.data.usos.length === 0 ? (
+                <div className="flex flex-col items-center py-10 text-text-muted gap-2">
+                  <Users size={36} className="opacity-30" />
+                  <p className="text-sm">Ningún usuario ha usado este código aún.</p>
+                </div>
+              ) : (
+                <div className="overflow-y-auto max-h-72 rounded-xl border border-border/40">
+                  <table className="w-full text-sm text-left">
+                    <thead className="sticky top-0 bg-background/95 backdrop-blur border-b border-border/50">
+                      <tr className="text-xs font-semibold text-text-muted">
+                        <th className="px-4 py-3">Usuario</th>
+                        <th className="px-4 py-3">Teléfono</th>
+                        <th className="px-4 py-3">Pedido</th>
+                        <th className="px-4 py-3">Descuento</th>
+                        <th className="px-4 py-3">Fecha</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {usosModal.data.usos.map((u) => (
+                        <tr key={u.id_uso} className="border-b border-border/30 hover:bg-white/5 transition-colors">
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                <User size={13} className="text-primary" />
+                              </div>
+                              <span className="font-medium text-text-main">{u.usuario?.nombre ?? '—'}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-text-muted font-mono text-xs">{u.usuario?.telefono ?? '—'}</td>
+                          <td className="px-4 py-3">
+                            {u.pedido ? (
+                              <span className="font-mono text-xs text-text-muted bg-background px-2 py-0.5 rounded border border-border">
+                                {u.pedido.id_pedido.slice(0, 8)}…
+                              </span>
+                            ) : '—'}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-status-success font-bold">-${u.monto_descontado.toFixed(2)}</span>
+                          </td>
+                          <td className="px-4 py-3 text-xs text-text-muted">
+                            {new Date(u.fecha).toLocaleDateString('es-VE', { day: '2-digit', month: 'short', year: 'numeric' })}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </Modal>
     </div>
