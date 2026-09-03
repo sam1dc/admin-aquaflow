@@ -3,6 +3,8 @@ import { useAuth } from '../../hooks/useAuth';
 import { LogOut, User, Bell } from 'lucide-react';
 import { NotificationDropdown } from './NotificationDropdown';
 import api from '../../api/client';
+import { io } from 'socket.io-client';
+import { supabase } from '../../supabase';
 
 export const Header = () => {
   const { user, logout } = useAuth();
@@ -28,9 +30,37 @@ export const Header = () => {
 
   useEffect(() => {
     fetchNotifications();
-    // Poll every 30 seconds for new notifications
-    const interval = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(interval);
+    
+    let socket;
+    const connectSocket = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        const socketUrl = import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:3000';
+        socket = io(socketUrl, {
+          auth: { token: session.access_token },
+        });
+
+        socket.on('notification:new', (notif) => {
+          setNotifications(prev => [
+            {
+              id: notif.id_notificacion,
+              type: notif.tipo,
+              title: notif.titulo,
+              message: notif.mensaje,
+              isRead: notif.leida,
+              date: notif.fecha_creacion,
+            },
+            ...prev
+          ]);
+        });
+      }
+    };
+
+    connectSocket();
+
+    return () => {
+      if (socket) socket.disconnect();
+    };
   }, []);
 
   const hasUnread = notifications.some(n => !n.isRead); 
