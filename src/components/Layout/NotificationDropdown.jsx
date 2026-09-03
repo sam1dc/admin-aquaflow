@@ -4,10 +4,11 @@ import api from '../../api/client';
 
 const getIcon = (type) => {
   switch(type) {
-    case 'alerta': return <ShieldAlert size={16} className="text-status-error" />;
+    case 'incidencia': return <ShieldAlert size={16} className="text-status-error" />;
     case 'pago': return <CreditCard size={16} className="text-status-success" />;
-    case 'sistema': return <Settings size={16} className="text-primary" />;
-    default: return <FileText size={16} className="text-primary" />;
+    case 'licencia': return <Droplet size={16} className="text-status-warning" />;
+    case 'reporte': return <FileText size={16} className="text-primary" />;
+    default: return <Bell size={16} className="text-text-muted" />;
   }
 };
 
@@ -80,7 +81,7 @@ export const NotificationDropdown = ({ isOpen, onClose, notifications, setNotifi
       </div>
 
       <div className="flex gap-2 p-3 border-b border-border overflow-x-auto custom-scrollbar shrink-0">
-        {['todas', 'alerta', 'sistema', 'estado_pedido'].map(f => (
+        {['todas', 'incidencia', 'pago', 'licencia', 'reporte'].map(f => (
           <button
             key={f}
             onClick={() => { setFilter(f); setPage(1); }}

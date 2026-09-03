@@ -14,14 +14,20 @@ export const Header = () => {
   const fetchNotifications = async () => {
     try {
       const res = await api.get('/admin/notificaciones');
-      const mapped = (res.data.data || []).map(n => ({
-        id: n.id_notificacion,
-        type: n.tipo,
-        title: n.titulo,
-        message: n.mensaje,
-        isRead: n.leida,
-        date: n.fecha_creacion,
-      }));
+      const mapped = (res.data.data || []).map(n => {
+        let frontendType = n.tipo;
+        if (n.tipo === 'alerta') frontendType = 'incidencia';
+        if (n.tipo === 'estado_pedido' || n.tipo === 'sistema') frontendType = 'reporte';
+
+        return {
+          id: n.id_notificacion,
+          type: frontendType,
+          title: n.titulo,
+          message: n.mensaje,
+          isRead: n.leida,
+          date: n.fecha_creacion,
+        };
+      });
       setNotifications(mapped);
     } catch (error) {
       console.error('Error fetching notifications:', error);
@@ -53,10 +59,14 @@ export const Header = () => {
         });
 
         socketInstance.on('notification:new', (notif) => {
+          let frontendType = notif.tipo;
+          if (notif.tipo === 'alerta') frontendType = 'incidencia';
+          if (notif.tipo === 'estado_pedido' || notif.tipo === 'sistema') frontendType = 'reporte';
+
           setNotifications(prev => [
             {
               id: notif.id_notificacion,
-              type: notif.tipo,
+              type: frontendType,
               title: notif.titulo,
               message: notif.mensaje,
               isRead: notif.leida,
