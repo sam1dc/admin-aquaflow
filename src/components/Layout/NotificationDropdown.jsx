@@ -1,26 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, Check, Filter, Info, ShieldAlert, CreditCard, Droplet, FileText } from 'lucide-react';
-
-const mockNotifications = Array.from({ length: 30 }).map((_, i) => ({
-  id: i + 1,
-  type: ['incidencia', 'pago', 'licencia', 'reporte'][i % 4],
-  title: ['Incidencia Reportada', 'Pago Confirmado', 'Licencia por Vencer', 'Nuevo Reporte'][i % 4],
-  message: `Detalle de la notificación ${i + 1} de prueba.`,
-  isRead: i > 3,
-  date: new Date(Date.now() - i * 3600000).toISOString(),
-}));
+import { Bell, Check, Filter, Info, ShieldAlert, CreditCard, Droplet, FileText, Settings } from 'lucide-react';
+import api from '../../api/client';
 
 const getIcon = (type) => {
   switch(type) {
-    case 'incidencia': return <ShieldAlert size={16} className="text-status-error" />;
+    case 'alerta': return <ShieldAlert size={16} className="text-status-error" />;
     case 'pago': return <CreditCard size={16} className="text-status-success" />;
-    case 'licencia': return <Droplet size={16} className="text-status-warning" />;
+    case 'sistema': return <Settings size={16} className="text-primary" />;
     default: return <FileText size={16} className="text-primary" />;
   }
 };
 
-export const NotificationDropdown = ({ isOpen, onClose }) => {
-  const [notifications, setNotifications] = useState(mockNotifications);
+export const NotificationDropdown = ({ isOpen, onClose, notifications, setNotifications }) => {
   const [filter, setFilter] = useState('todas');
   const [page, setPage] = useState(1);
   const itemsPerPage = 10;
@@ -51,12 +42,25 @@ export const NotificationDropdown = ({ isOpen, onClose }) => {
     }
   };
 
-  const markAllAsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+  const markAllAsRead = async () => {
+    try {
+      await api.patch('/admin/notificaciones/read-all');
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+    } catch (error) {
+      console.error('Error marking all as read', error);
+    }
   };
 
-  const markAsRead = (id) => {
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+  const markAsRead = async (id) => {
+    const notif = notifications.find(n => n.id === id);
+    if (notif?.isRead) return;
+
+    try {
+      await api.patch(`/admin/notificaciones/${id}/read`);
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+    } catch (error) {
+      console.error('Error marking as read', error);
+    }
   };
 
   if (!isOpen) return null;
@@ -76,7 +80,7 @@ export const NotificationDropdown = ({ isOpen, onClose }) => {
       </div>
 
       <div className="flex gap-2 p-3 border-b border-border overflow-x-auto custom-scrollbar shrink-0">
-        {['todas', 'incidencia', 'pago', 'licencia', 'reporte'].map(f => (
+        {['todas', 'alerta', 'sistema', 'estado_pedido'].map(f => (
           <button
             key={f}
             onClick={() => { setFilter(f); setPage(1); }}

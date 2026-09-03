@@ -1,14 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { LogOut, User, Bell } from 'lucide-react';
 import { NotificationDropdown } from './NotificationDropdown';
+import api from '../../api/client';
 
 export const Header = () => {
   const { user, logout } = useAuth();
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-  // Simulación: asumiendo que hay notificaciones sin leer.
-  // En un caso real, esto vendría de un estado global o context de notificaciones.
-  const hasUnread = true; 
+  const [notifications, setNotifications] = useState([]);
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await api.get('/admin/notificaciones');
+      const mapped = (res.data.data || []).map(n => ({
+        id: n.id_notificacion,
+        type: n.tipo,
+        title: n.titulo,
+        message: n.mensaje,
+        isRead: n.leida,
+        date: n.fecha_creacion,
+      }));
+      setNotifications(mapped);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    // Poll every 30 seconds for new notifications
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const hasUnread = notifications.some(n => !n.isRead); 
 
   return (
     <header className="h-[70px] bg-background/80 backdrop-blur-lg border-b border-border flex items-center justify-end px-8 sticky top-0 z-40">
@@ -27,6 +52,8 @@ export const Header = () => {
           <NotificationDropdown 
             isOpen={isNotificationsOpen} 
             onClose={() => setIsNotificationsOpen(false)} 
+            notifications={notifications}
+            setNotifications={setNotifications}
           />
         </div>
 
