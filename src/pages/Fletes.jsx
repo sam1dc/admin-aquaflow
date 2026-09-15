@@ -153,7 +153,7 @@ export const Fletes = ({ isEmbedded = false }) => {
       setSuccessModal(true);
       fetchConfig();
     } catch (e) {
-      const msg = e.response?.data?.error || 'Error al guardar la configuración';
+      const msg = e.response?.data?.detalle || e.response?.data?.error || 'Error al guardar la configuración';
       setErrorMsg(msg);
     } finally {
       setSaving(false);
@@ -461,7 +461,7 @@ export const Fletes = ({ isEmbedded = false }) => {
               </div>
             ) : (
               <>
-                <div className="rounded-xl overflow-hidden border border-border/50" style={{ height: 420 }}>
+                <div className="rounded-xl overflow-hidden border border-border/50" style={{ height: 600 }}>
                   <MapContainer
                     center={[pozos[0]?.latitud || 8.0, pozos[0]?.longitud || -62.4]}
                     zoom={11}
