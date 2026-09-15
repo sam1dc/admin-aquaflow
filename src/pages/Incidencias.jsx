@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
-import { AlertTriangle, Check, Eye, User, Package, ExternalLink, ShieldAlert, X } from 'lucide-react';
+import { AlertTriangle, Check, Eye, User, Package, ExternalLink, ShieldAlert, X, MessageSquare, Send } from 'lucide-react';
+import { Modal } from '../components/ui/Modal';
 import api from '../api/client';
 
 const tipoVariant = {
@@ -50,6 +51,9 @@ export const Incidencias = () => {
   const [filter, setFilter] = useState('Todas');
   const [actionLoading, setActionLoading] = useState(null);
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+  const [selectedIncidencia, setSelectedIncidencia] = useState(null);
+  const [newMessage, setNewMessage] = useState('');
+  const [isSending, setIsSending] = useState(false);
 
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
@@ -84,6 +88,27 @@ export const Incidencias = () => {
       showToast(`Error: ${error.response?.data?.error || error.message}`, 'error');
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || !selectedIncidencia) return;
+    try {
+      setIsSending(true);
+      const res = await api.post(`/admin/incidencias/${selectedIncidencia.id_incidencia}/mensajes`, {
+        mensaje: newMessage.trim(),
+      });
+      // Append the new message to the local state so it shows up immediately
+      const updatedMessages = [...(selectedIncidencia.mensajes || []), res.data.data];
+      const updatedIncidencia = { ...selectedIncidencia, mensajes: updatedMessages, estatus_gestion: 'En Revision' };
+      setSelectedIncidencia(updatedIncidencia);
+      // Update the main list
+      setIncidencias(prev => prev.map(inc => inc.id_incidencia === updatedIncidencia.id_incidencia ? updatedIncidencia : inc));
+      setNewMessage('');
+    } catch (error) {
+      showToast(`Error: ${error.response?.data?.error || error.message}`, 'error');
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -149,7 +174,8 @@ export const Incidencias = () => {
             return (
               <div 
                 key={inc.id_incidencia} 
-                className={`glass-card rounded-xl p-6 transition-all duration-300 flex flex-col gap-4 hover:border-primary/40 hover:shadow-[0_0_15px_rgba(52,152,219,0.1)] ${isClosed ? 'opacity-70' : ''}`}
+                className={`glass-card rounded-xl p-6 transition-all duration-300 flex flex-col gap-4 hover:border-primary/40 hover:shadow-[0_0_15px_rgba(52,152,219,0.1)] cursor-pointer ${isClosed ? 'opacity-70' : ''}`}
+                onClick={() => setSelectedIncidencia(inc)}
               >
                 <div className="flex justify-between items-start border-b border-border/50 pb-4">
                   <div className="flex items-center gap-3">
@@ -230,6 +256,18 @@ export const Incidencias = () => {
                       Resuelta
                     </span>
                   )}
+                  {!isClosed && (
+                    <Button
+                      variant="outline"
+                      className="px-4 py-2 border-primary/50 text-primary hover:bg-primary/10 transition-all text-sm font-semibold flex items-center gap-2"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedIncidencia(inc);
+                      }}
+                    >
+                      <MessageSquare size={16} /> Responder
+                    </Button>
+                  )}
                 </div>
               </div>
             );
@@ -256,6 +294,92 @@ export const Incidencias = () => {
             <X size={14} />
           </button>
         </div>
+      )}
+
+      {/* Chat Modal */}
+      {selectedIncidencia && (
+        <Modal
+          isOpen={!!selectedIncidencia}
+          onClose={() => setSelectedIncidencia(null)}
+          title={`Ticket: ${tipoLabel[selectedIncidencia.tipo] || selectedIncidencia.tipo}`}
+          maxWidth="max-w-3xl"
+        >
+          <div className="flex flex-col h-[60vh]">
+            {/* Header / Info */}
+            <div className="flex flex-col gap-2 p-4 border-b border-border/50 bg-background/50">
+              <div className="flex justify-between items-center">
+                <span className={`px-2 py-1 text-xs font-bold rounded border ${getSeverityColor(selectedIncidencia.tipo)}`}>
+                  {getSeverityBadgeText(selectedIncidencia.tipo)}
+                </span>
+                <Badge variant={selectedIncidencia.estatus_gestion === 'Cerrada' ? 'success' : 'info'}>
+                  {selectedIncidencia.estatus_gestion}
+                </Badge>
+              </div>
+              {selectedIncidencia.pedido && (
+                <p className="text-sm text-text-muted mt-2">
+                  Asociado al Pedido <span className="font-semibold text-primary">#{selectedIncidencia.pedido.id_pedido.slice(0,8).toUpperCase()}</span>
+                </p>
+              )}
+            </div>
+            
+            {/* Messages Area */}
+            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+              {/* Mensaje original de la incidencia */}
+              <div className="flex flex-col max-w-[85%] self-start bg-background-card border border-border/50 rounded-2xl rounded-tl-sm p-4 relative shadow-sm">
+                <div className="flex items-center gap-2 mb-1">
+                  <User size={14} className="text-primary" />
+                  <span className="text-xs font-bold text-text-main">{selectedIncidencia.usuario?.nombre} (Cliente)</span>
+                </div>
+                <p className="text-sm text-text-main">{selectedIncidencia.descripcion}</p>
+                <span className="text-[10px] text-text-muted self-end mt-1">
+                  {new Date(selectedIncidencia.pedido?.fecha_creacion || Date.now()).toLocaleDateString()}
+                </span>
+              </div>
+
+              {/* Historial de Respuestas */}
+              {selectedIncidencia.mensajes?.map(msg => {
+                const isAdmin = msg.remitente_rol === 'Admin';
+                return (
+                  <div key={msg.id_mensaje} className={`flex flex-col max-w-[85%] p-4 rounded-2xl shadow-sm relative ${isAdmin ? 'self-end bg-primary/20 border border-primary/30 rounded-tr-sm text-text-main' : 'self-start bg-background-card border border-border/50 rounded-tl-sm text-text-main'}`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      {isAdmin ? <ShieldAlert size={14} className="text-primary" /> : <User size={14} className="text-primary" />}
+                      <span className="text-xs font-bold opacity-80">{isAdmin ? 'Soporte (Tú)' : 'Cliente'}</span>
+                    </div>
+                    <p className="text-sm">{msg.mensaje}</p>
+                    <span className="text-[10px] opacity-60 self-end mt-1">
+                      {new Date(msg.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+            
+            {/* Input Area */}
+            {selectedIncidencia.estatus_gestion !== 'Cerrada' ? (
+              <div className="p-4 border-t border-border/50 flex items-center gap-3 bg-background-card">
+                <input
+                  type="text"
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyDown={(e) => { if(e.key === 'Enter') handleSendMessage() }}
+                  placeholder="Escribe una respuesta al cliente..."
+                  className="flex-1 bg-background border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary transition-colors text-text-main"
+                />
+                <Button 
+                  onClick={handleSendMessage} 
+                  disabled={!newMessage.trim() || isSending}
+                  className="bg-primary hover:bg-primary-dark text-white rounded-xl w-12 h-12 flex items-center justify-center p-0"
+                >
+                  {isSending ? <span className="animate-spin h-5 w-5 border-2 border-white/30 border-t-white rounded-full"></span> : <Send size={20} />}
+                </Button>
+              </div>
+            ) : (
+              <div className="p-4 border-t border-border/50 text-center bg-background/50">
+                <p className="text-sm text-text-muted">Esta incidencia está cerrada. Para enviar mensajes, primero debes reabrirla.</p>
+              </div>
+            )}
+          </div>
+        </Modal>
       )}
     </div>
   );
