@@ -5,6 +5,7 @@ import { Dashboard } from './pages/Dashboard';
 import { Cisterneros } from './pages/Cisterneros';
 import { Tarifas } from './pages/Tarifas';
 import { Fletes } from './pages/Fletes';
+import { Pozos } from './pages/Pozos';
 import { Promociones } from './pages/Promociones';
 import { Pedidos } from './pages/Pedidos';
 import { Pagos } from './pages/Pagos';
@@ -43,6 +44,10 @@ export const router = createBrowserRouter([
       {
         path: 'fletes',
         element: <Fletes />,
+      },
+      {
+        path: 'pozos',
+        element: <Pozos />,
       },
       {
         path: 'promociones',

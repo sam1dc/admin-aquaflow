@@ -300,8 +300,12 @@ export const Pedidos = () => {
                           <div className="flex items-start gap-3">
                             <div className="w-6 flex justify-center flex-shrink-0"><MapPin size={18} className="text-text-muted mt-0.5" /></div>
                             <p className="text-sm font-medium text-text-main break-all leading-relaxed">
-                              <span className="text-text-muted text-[10px] uppercase font-bold tracking-wider mr-2 bg-background-card px-2 py-0.5 rounded border border-border">Origen</span>
-                              {p.direccion_origen || 'Llenadero Principal'}
+                              <span className="text-text-muted text-[10px] uppercase font-bold tracking-wider mr-2 bg-background-card px-2 py-0.5 rounded border border-border">Zona (Pozo)</span>
+                              {p.pozo ? (
+                                <span><strong className="text-primary">{p.pozo.nombre}</strong> — {p.pozo.ubicacion}</span>
+                              ) : (
+                                p.direccion_origen || 'Pozo no especificado (Cálculo urbano por defecto)'
+                              )}
                             </p>
                           </div>
                           <div className="flex items-start gap-3">
