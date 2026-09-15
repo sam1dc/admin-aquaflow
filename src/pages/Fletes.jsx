@@ -22,7 +22,7 @@ const InfoBox = ({ icon: Icon, color, title, children }) => (
   </div>
 );
 
-export const Fletes = () => {
+export const Fletes = ({ isEmbedded = false }) => {
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -145,18 +145,19 @@ export const Fletes = () => {
     <div className="animate-fade-in flex flex-col gap-8 pb-8">
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between sm:items-end gap-4">
-        <div>
-          <h2 className="text-3xl font-bold text-text-main tracking-tight mb-2 flex items-center gap-3">
-            <Route className="text-primary" size={30} />
-            Configuración de Fletes
-          </h2>
-          <p className="text-text-muted">
-            Define el radio urbano gratuito y los tramos de cobro por kilómetro recorrido midiendo desde el Pozo asignado.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {fromDB ? (
+      {!isEmbedded && (
+        <div className="flex flex-col sm:flex-row justify-between sm:items-end gap-4">
+          <div>
+            <h2 className="text-3xl font-bold text-text-main tracking-tight mb-2 flex items-center gap-3">
+              <Route className="text-primary" size={30} />
+              Configuración de Fletes
+            </h2>
+            <p className="text-text-muted">
+              Define el radio urbano gratuito y los tramos de cobro por kilómetro recorrido midiendo desde el Pozo asignado.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {fromDB ? (
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-status-success/10 text-status-success font-semibold text-xs border border-status-success/20">
               <span className="w-2 h-2 rounded-full bg-status-success animate-pulse" />
               Configuración activa en BD
@@ -176,6 +177,7 @@ export const Fletes = () => {
           </button>
         </div>
       </div>
+      )}
 
       {errorMsg && (
         <div className="flex items-center gap-3 p-4 rounded-xl bg-status-error/10 border border-status-error/20 text-status-error text-sm font-medium">

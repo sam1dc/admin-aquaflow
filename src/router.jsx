@@ -3,10 +3,8 @@ import { Layout } from './components/Layout/Layout';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { Cisterneros } from './pages/Cisterneros';
-import { Tarifas } from './pages/Tarifas';
-import { Fletes } from './pages/Fletes';
 import { Pozos } from './pages/Pozos';
-import { Promociones } from './pages/Promociones';
+import { Precios } from './pages/Precios';
 import { Pedidos } from './pages/Pedidos';
 import { Pagos } from './pages/Pagos';
 import { Incidencias } from './pages/Incidencias';
@@ -38,20 +36,12 @@ export const router = createBrowserRouter([
         element: <Pagos />,
       },
       {
-        path: 'tarifas',
-        element: <Tarifas />,
-      },
-      {
-        path: 'fletes',
-        element: <Fletes />,
-      },
-      {
         path: 'pozos',
         element: <Pozos />,
       },
       {
-        path: 'promociones',
-        element: <Promociones />,
+        path: 'precios',
+        element: <Precios />,
       },
       {
         path: 'incidencias',

@@ -8,7 +8,7 @@ import { Pencil, Plus, Tag, RefreshCw, DollarSign, Coins, Trash2, Droplet, List,
 import api from '../api/client';
 import { getBcvRate } from '../api/bcv';
 
-export const Tarifas = () => {
+export const Tarifas = ({ isEmbedded = false }) => {
   const [tarifas, setTarifas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [bcvData, setBcvData] = useState({ rate: 0, fechaActualizacion: '', fuente: '' });

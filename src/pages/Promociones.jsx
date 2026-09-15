@@ -6,7 +6,7 @@ import { Modal } from '../components/ui/Modal';
 import { Gift, Plus, Pencil, Trash2, Percent, Banknote, Crown, Ticket, Users, TrendingUp, Eye, X, User, Calendar, DollarSign } from 'lucide-react';
 import api from '../api/client';
 
-export const Promociones = () => {
+export const Promociones = ({ isEmbedded = false }) => {
   const [promos, setPromos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -136,16 +136,29 @@ export const Promociones = () => {
     <div className="animate-fade-in flex flex-col gap-6 pb-8">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h2 className="text-3xl font-bold text-text-main tracking-tight">Gestión de Promociones</h2>
-          <p className="text-text-muted text-sm mt-1">Administra códigos de descuento, campañas y recompensas activas.</p>
-        </div>
-        <button
-          onClick={handleOpenCreate}
-          className="bg-primary text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:shadow-glow hover:bg-primary-dark transition-all flex items-center gap-2 ambient-glow"
-        >
-          <Plus size={18} /> Nueva Promoción
-        </button>
+        {!isEmbedded && (
+          <div>
+            <h2 className="text-3xl font-bold text-text-main tracking-tight">Gestión de Promociones</h2>
+            <p className="text-text-muted text-sm mt-1">Administra códigos de descuento, campañas y recompensas activas.</p>
+          </div>
+        )}
+        {isEmbedded ? (
+          <div className="w-full flex justify-end">
+            <button
+              onClick={handleOpenCreate}
+              className="bg-primary text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:shadow-glow hover:bg-primary-dark transition-all flex items-center gap-2 ambient-glow"
+            >
+              <Plus size={18} /> Nueva Promoción
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={handleOpenCreate}
+            className="bg-primary text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:shadow-glow hover:bg-primary-dark transition-all flex items-center gap-2 ambient-glow"
+          >
+            <Plus size={18} /> Nueva Promoción
+          </button>
+        )}
       </div>
 
       {/* Bento Stats */}
