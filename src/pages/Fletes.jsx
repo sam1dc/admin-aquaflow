@@ -4,8 +4,7 @@ import { Modal } from '../components/ui/Modal';
 import {
   MapPin, Zap, Plus, Trash2, Save, RefreshCw,
   AlertTriangle, CheckCircle, Info, Route, Map
-} from 'lucide-react';
-import { MapContainer, TileLayer, Circle, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Circle, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -15,6 +14,15 @@ L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+});
+
+const redIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
 });
 
 const ZONE_COLORS = [
@@ -62,6 +70,7 @@ export const Fletes = ({ isEmbedded = false }) => {
   const [errorMsg, setErrorMsg] = useState('');
   const [pozos, setPozos] = useState([]);
   const [showMap, setShowMap] = useState(true);
+  const [testLocation, setTestLocation] = useState(null); // { lat, lng }
 
   // Form state
   const [radioUrbano, setRadioUrbano] = useState(DEFAULTS.radio_urbano_km);
@@ -161,7 +170,7 @@ export const Fletes = ({ isEmbedded = false }) => {
   };
 
   // --- Live preview ---
-  const calcularPreview = (kmTotales) => {
+  const calcularFleteKm = (kmTotales) => {
     const kmExtra = Math.max(0, kmTotales - radioUrbano);
     let flete = 0;
     let restante = kmExtra;
@@ -174,6 +183,44 @@ export const Fletes = ({ isEmbedded = false }) => {
       if (restante <= 0) break;
     }
     return flete;
+  };
+
+  const calcularPreview = (kmTotales) => calcularFleteKm(kmTotales);
+
+  // Distance calculator using Haversine formula
+  const getDistanciaKm = (lat1, lon1, lat2, lon2) => {
+    const R = 6371; // km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
+
+  const getNearestPozo = (lat, lng) => {
+    if (pozos.length === 0) return null;
+    let nearest = pozos[0];
+    let minD = getDistanciaKm(lat, lng, nearest.latitud, nearest.longitud);
+    for (let i = 1; i < pozos.length; i++) {
+      const d = getDistanciaKm(lat, lng, pozos[i].latitud, pozos[i].longitud);
+      if (d < minD) {
+        nearest = pozos[i];
+        minD = d;
+      }
+    }
+    return { pozo: nearest, distancia: minD };
+  };
+
+  const MapClickHandler = () => {
+    useMapEvents({
+      click(e) {
+        setTestLocation({ lat: e.latlng.lat, lng: e.latlng.lng });
+      },
+    });
+    return null;
   };
 
   const BASE_3500 = 28; // $8 × 3.5 = $28 base para 3500L
@@ -461,7 +508,8 @@ export const Fletes = ({ isEmbedded = false }) => {
               </div>
             ) : (
               <>
-                <div className="rounded-xl overflow-hidden border border-border/50" style={{ height: 600 }}>
+                <p className="text-xs text-text-muted">💡 Haz clic en cualquier parte del mapa para colocar un marcador de prueba y calcular el flete hasta el pozo más cercano.</p>
+                <div className="rounded-xl overflow-hidden border border-border/50 relative" style={{ height: 600 }}>
                   <MapContainer
                     center={[pozos[0]?.latitud || 8.0, pozos[0]?.longitud || -62.4]}
                     zoom={11}
@@ -532,6 +580,31 @@ export const Fletes = ({ isEmbedded = false }) => {
                         </React.Fragment>
                       );
                     })}
+
+                    <MapClickHandler />
+                    {testLocation && (() => {
+                      const nearest = getNearestPozo(testLocation.lat, testLocation.lng);
+                      if (!nearest) return null;
+                      const flete = calcularFleteKm(nearest.distancia);
+                      return (
+                        <Marker position={[testLocation.lat, testLocation.lng]} icon={redIcon}>
+                          <Popup autoPan={false}>
+                            <div style={{ minWidth: 150 }}>
+                              <strong style={{ color: '#ef4444' }}>Ubicación de Prueba</strong>
+                              <br />
+                              <div style={{ fontSize: 12, marginTop: 4 }}>
+                                <strong>Pozo más cercano:</strong> {nearest.pozo.nombre}<br/>
+                                <strong>Distancia:</strong> {nearest.distancia.toFixed(2)} km
+                              </div>
+                              <hr style={{ margin: '6px 0', borderColor: '#eee' }} />
+                              <div style={{ fontSize: 13 }}>
+                                <strong>Flete estimado:</strong> <span style={{ color: flete > 0 ? '#ef4444' : '#22c55e' }}>{flete > 0 ? `+$${flete.toFixed(2)}` : '¡Gratis!'}</span>
+                              </div>
+                            </div>
+                          </Popup>
+                        </Marker>
+                      );
+                    })()}
                   </MapContainer>
                 </div>
 

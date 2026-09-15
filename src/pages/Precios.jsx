@@ -34,7 +34,7 @@ export const Precios = () => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all cursor-pointer ${
                 isActive
                   ? 'bg-primary text-white shadow-glow'
                   : 'text-text-muted hover:text-text-main hover:bg-white/5'
