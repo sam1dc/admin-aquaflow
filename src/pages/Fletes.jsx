@@ -94,9 +94,12 @@ export const Fletes = ({ isEmbedded = false }) => {
 
   // Fetch pozos activos para el mapa
   useEffect(() => {
-    api.get('/pozos').then((res) => {
-      setPozos((res.data.data || []).filter((p) => p.activo));
-    }).catch(() => {});
+    api.get('/admin/pozos').then((res) => {
+      const all = res.data.data || [];
+      setPozos(all.filter((p) => p.activo));
+    }).catch((err) => {
+      console.error('[Fletes] Error al cargar pozos para el mapa:', err);
+    });
   }, []);
 
   // --- Tramo handlers ---
