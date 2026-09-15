@@ -135,10 +135,10 @@ export const Fletes = () => {
 
   const BASE_3500 = 28; // $8 × 3.5 = $28 base para 3500L
   const previews = [
-    { label: 'Upata (urbano)', km: 5, desc: 'Dentro del radio urbano' },
-    { label: 'Chapire (~10 km)', km: 10, desc: 'Límite del radio urbano' },
-    { label: 'El Manganeso (~20 km)', km: 20, desc: 'Zona minera' },
-    { label: 'Santa María (~30 km)', km: 30, desc: 'Ruta larga' },
+    { label: 'A 5 km del Pozo', km: 5, desc: 'Dentro del radio urbano del pozo asignado' },
+    { label: 'A 10 km del Pozo', km: 10, desc: 'Límite del radio urbano del pozo' },
+    { label: 'A 20 km del Pozo', km: 20, desc: 'Zona alejada del pozo' },
+    { label: 'A 30 km del Pozo', km: 30, desc: 'Ruta muy larga desde el pozo' },
   ];
 
   return (
@@ -152,7 +152,7 @@ export const Fletes = () => {
             Configuración de Fletes
           </h2>
           <p className="text-text-muted">
-            Define el radio urbano gratuito y los tramos de cobro por kilómetro recorrido.
+            Define el radio urbano gratuito y los tramos de cobro por kilómetro recorrido midiendo desde el Pozo asignado.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -245,8 +245,8 @@ export const Fletes = () => {
               </div>
 
               <InfoBox icon={Info} color="primary" title="¿Cómo funciona el radio urbano?">
-                Todo viaje dentro de los primeros <strong>{radioUrbano} km</strong> no paga flete.
-                Los kilómetros extras se cobran según los tramos configurados abajo.
+                Todo viaje dentro de los primeros <strong>{radioUrbano} km</strong> medidos <strong>desde el Pozo asignado</strong> no paga flete extra.
+                Los kilómetros adicionales se cobran según los tramos configurados abajo.
               </InfoBox>
             </div>
 
@@ -351,11 +351,11 @@ export const Fletes = () => {
           <div className="glass-card rounded-xl p-6 flex flex-col gap-4 sticky top-4">
             <h3 className="text-lg font-bold text-text-main flex items-center gap-2">
               <Zap size={18} className="text-yellow-400" />
-              Preview en Vivo
+              Simulador de Viajes
               <span className="text-xs text-text-muted font-normal ml-1">(3.500 L)</span>
             </h3>
             <p className="text-xs text-text-muted">
-              Simulación con base <strong className="text-text-main">$28.00</strong> (3500L × $8/1000L) + flete calculado + comisión.
+              Simulación de viaje base <strong>$28.00</strong> + flete (medido desde el Pozo) + comisión.
             </p>
 
             <div className="flex flex-col gap-3">
