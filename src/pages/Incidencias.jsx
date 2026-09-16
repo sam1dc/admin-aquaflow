@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
-import { 
-  AlertTriangle, Check, Eye, User, Package, ExternalLink, ShieldAlert, 
+import {
+  AlertTriangle, Check, Eye, User, Package, ExternalLink, ShieldAlert,
   X, MessageSquare, Send, Clock, CheckCircle2, Shield
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -54,7 +54,7 @@ export const Incidencias = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('Todas');
   const [actionLoading, setActionLoading] = useState(null);
-  
+
   // Estado para modal / drawer de revisión y chat sin recargar la pantalla
   const [showRevisionChat, setShowRevisionChat] = useState(false);
   const [selectedIncidencia, setSelectedIncidencia] = useState(null);
@@ -85,7 +85,7 @@ export const Incidencias = () => {
       e.stopPropagation();
     }
     setSelectedIncidencia(inc);
-    
+
     // Inicializar mensajes de chat contextual para la incidencia
     const initialMessages = [
       {
@@ -107,25 +107,6 @@ export const Incidencias = () => {
     setShowRevisionChat(true);
   };
 
-  const handleSendMessage = (e) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    if (!newMessage.trim()) return;
-
-    const msg = {
-      id: Date.now(),
-      sender: 'Administrador (Tú)',
-      role: 'admin',
-      text: newMessage.trim(),
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    };
-
-    setChatMessages(prev => [...prev, msg]);
-    setNewMessage('');
-  };
-
   const handleUpdateStatus = async (e, id, estatus_gestion) => {
     if (e) {
       e.preventDefault();
@@ -136,9 +117,9 @@ export const Incidencias = () => {
       setActionLoading(id);
       const res = await api.patch(`/admin/incidencias/${id}/estado`, { estatus_gestion });
       toast.success(res.data?.message || `Incidencia marcada como ${estatus_gestion}`);
-      
+
       // Actualización de estado local inmediata para evitar parpadeos de recarga
-      setIncidencias(prev => prev.map(inc => 
+      setIncidencias(prev => prev.map(inc =>
         inc.id_incidencia === id ? { ...inc, estatus_gestion } : inc
       ));
 
@@ -189,7 +170,7 @@ export const Incidencias = () => {
           </h2>
           <p className="text-text-muted text-sm mt-1">Gestione y resuelva problemas reportados en la plataforma.</p>
         </div>
-        
+
         {/* Status Filters */}
         <div className="flex flex-wrap gap-2">
           {statuses.map((estado) => {
@@ -199,11 +180,10 @@ export const Incidencias = () => {
                 key={estado}
                 type="button"
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFilter(estado); }}
-                className={`px-5 py-2 rounded-full font-semibold text-sm transition-all outline-none cursor-pointer ${
-                  isActive
+                className={`px-5 py-2 rounded-full font-semibold text-sm transition-all outline-none cursor-pointer ${isActive
                     ? 'border border-primary bg-primary/10 text-primary shadow-[0_0_10px_rgba(52,152,219,0.15)]'
                     : 'border border-border text-text-muted hover:border-primary/50 hover:text-text-main'
-                }`}
+                  }`}
               >
                 {estado} {estado === 'Todas' && `(${incidencias.length})`}
                 {estado === 'Abierta' && `(${incidencias.filter(i => i.estatus_gestion === 'Abierta').length})`}
@@ -238,8 +218,8 @@ export const Incidencias = () => {
             const isClosed = inc.estatus_gestion === 'Cerrada';
 
             return (
-              <div 
-                key={inc.id_incidencia} 
+              <div
+                key={inc.id_incidencia}
                 className={`glass-card rounded-xl p-6 transition-all duration-300 flex flex-col gap-4 hover:border-primary/40 hover:shadow-[0_0_15px_rgba(52,152,219,0.1)] cursor-pointer ${isClosed ? 'opacity-70' : ''}`}
                 onClick={() => setSelectedIncidencia(inc)}
               >
@@ -264,7 +244,7 @@ export const Incidencias = () => {
                   <p className="text-sm text-text-muted bg-background/50 p-3 rounded-lg border border-border/30 line-clamp-3">
                     {inc.descripcion || 'Sin descripción detallada.'}
                   </p>
-                  
+
                   <div className="grid grid-cols-2 gap-4 mt-2">
                     <div>
                       <p className="text-xs text-text-muted uppercase font-semibold tracking-wider mb-2">Reportado por</p>
@@ -282,11 +262,11 @@ export const Incidencias = () => {
                         </div>
                       </div>
                     </div>
-                    
+
                     <div>
                       <p className="text-xs text-text-muted uppercase font-semibold tracking-wider mb-2">Orden Asociada</p>
                       {pedido ? (
-                        <Link 
+                        <Link
                           to={`/pedidos?search=${pedido.id_pedido}`}
                           className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:text-primary-dark transition-colors"
                         >
@@ -376,27 +356,25 @@ export const Incidencias = () => {
             <div className="flex flex-col h-72 bg-background/80 rounded-xl border border-border overflow-hidden">
               <div className="flex-1 p-4 overflow-y-auto custom-scrollbar flex flex-col gap-3">
                 {chatMessages.map(msg => (
-                  <div 
+                  <div
                     key={msg.id}
-                    className={`flex flex-col max-w-[80%] ${
-                      msg.role === 'admin' 
-                        ? 'self-end items-end' 
+                    className={`flex flex-col max-w-[80%] ${msg.role === 'admin'
+                        ? 'self-end items-end'
                         : msg.role === 'system'
-                        ? 'self-center items-center max-w-[95%]'
-                        : 'self-start items-start'
-                    }`}
+                          ? 'self-center items-center max-w-[95%]'
+                          : 'self-start items-start'
+                      }`}
                   >
                     <div className="flex items-center gap-1.5 mb-0.5">
                       <span className="text-[10px] text-text-muted font-bold">{msg.sender}</span>
                       <span className="text-[9px] text-text-muted/70">{msg.time}</span>
                     </div>
-                    <div className={`p-3 rounded-2xl text-xs leading-relaxed ${
-                      msg.role === 'admin'
+                    <div className={`p-3 rounded-2xl text-xs leading-relaxed ${msg.role === 'admin'
                         ? 'bg-primary text-white rounded-tr-none'
                         : msg.role === 'system'
-                        ? 'bg-background-card border border-border text-text-muted text-center italic py-1.5 px-4 rounded-full'
-                        : 'bg-background-card border border-border text-text-main rounded-tl-none'
-                    }`}>
+                          ? 'bg-background-card border border-border text-text-muted text-center italic py-1.5 px-4 rounded-full'
+                          : 'bg-background-card border border-border text-text-main rounded-tl-none'
+                      }`}>
                       {msg.text}
                     </div>
                   </div>
