@@ -8,6 +8,7 @@ import {
   CalendarDays, Wallet, AlertTriangle, Phone, Mail, Building, History
 } from 'lucide-react';
 import { Modal } from '../components/ui/Modal';
+import { OrderMap } from '../components/Map/OrderMap';
 import api from '../api/client';
 
 const ESTADOS = [
@@ -292,37 +293,45 @@ export const Pedidos = () => {
                       </div>
                     </div>
 
-                    {/* Destino */}
-                    <div className="space-y-4 col-span-1 md:col-span-2">
-                      <h4 className="text-xs text-text-muted uppercase tracking-wider font-semibold">Ubicación de Entrega</h4>
-                      <div className="flex flex-col h-full bg-background/50 rounded-lg border border-border/50 p-4 justify-center">
-                        <div className="flex flex-col gap-3 mb-2">
-                          <div className="flex items-start gap-3">
-                            <div className="w-6 flex justify-center flex-shrink-0"><MapPin size={18} className="text-text-muted mt-0.5" /></div>
-                            <p className="text-sm font-medium text-text-main break-all leading-relaxed">
-                              <span className="text-text-muted text-[10px] uppercase font-bold tracking-wider mr-2 bg-background-card px-2 py-0.5 rounded border border-border">Origen</span>
-                              {p.direccion_origen || 'Llenadero Principal'}
-                            </p>
+                    {/* Destino & Mapa de Ruta */}
+                    <div className="space-y-4 col-span-1 md:col-span-2 flex flex-col">
+                      <div className="flex justify-between items-center">
+                        <h4 className="text-xs text-text-muted uppercase tracking-wider font-semibold">Ubicación de Entrega & Ruta</h4>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setHistorialModal({ isOpen: true, pedido: p });
+                          }}
+                          className="text-xs font-semibold text-primary hover:text-primary-dark transition-colors inline-flex items-center gap-1 bg-primary/10 px-2.5 py-1 rounded-lg border border-primary/20 hover:bg-primary/20 cursor-pointer"
+                        >
+                          <History size={13} /> Historial GPS
+                        </button>
+                      </div>
+
+                      <div className="flex flex-col gap-3 bg-background/50 rounded-xl border border-border/50 p-4">
+                        {/* Mapa Interactivo con Polilínea */}
+                        <OrderMap pedido={p} height="220px" showRoute={true} />
+
+                        {/* Coordenadas e Información de Ruta */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+                          <div className="flex items-start gap-2 bg-background-card p-2.5 rounded-lg border border-border/60">
+                            <MapPin size={16} className="text-primary mt-0.5 shrink-0" />
+                            <div className="min-w-0">
+                              <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider">Punto de Carga</p>
+                              <p className="text-xs font-medium text-text-main truncate">
+                                {p.direccion_origen || 'Llenadero Principal'}
+                              </p>
+                            </div>
                           </div>
-                          <div className="flex items-start gap-3">
-                            <div className="w-6 flex justify-center flex-shrink-0"><MapPin size={22} className="text-primary mt-0.5" /></div>
-                            <p className="text-sm font-medium text-text-main break-all leading-relaxed">
-                              <span className="text-primary text-[10px] uppercase font-bold tracking-wider mr-2 bg-primary/10 px-2 py-0.5 rounded border border-primary/20">Destino</span>
-                              {p.direccion_destino || (p.coordenadas_destino ? `Coordenadas: ${p.coordenadas_destino}` : 'Ubicación no proporcionada')}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="ml-9 border-t border-border/50 pt-2 mt-2">
-                          <div className="mt-1">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setHistorialModal({ isOpen: true, pedido: p });
-                              }}
-                              className="text-xs font-semibold text-primary hover:text-primary-dark transition-colors inline-flex items-center gap-1 bg-primary/10 px-3 py-1.5 rounded-full border border-primary/20 hover:bg-primary/20"
-                            >
-                              <History size={14} /> Ver Historial Completo
-                            </button>
+                          <div className="flex items-start gap-2 bg-background-card p-2.5 rounded-lg border border-border/60">
+                            <MapPin size={16} className="text-status-neon mt-0.5 shrink-0" />
+                            <div className="min-w-0">
+                              <p className="text-[10px] text-status-neon uppercase font-bold tracking-wider">Destino</p>
+                              <p className="text-xs font-medium text-text-main truncate">
+                                {p.direccion_destino || (p.coordenadas_destino ? `GPS: ${p.coordenadas_destino}` : 'Bolívar, Venezuela')}
+                              </p>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -388,6 +397,12 @@ export const Pedidos = () => {
         title="Historial del Pedido"
       >
         <div className="mt-4 flex flex-col gap-4">
+          {historialModal.pedido && (
+            <div className="flex flex-col gap-2">
+              <OrderMap pedido={historialModal.pedido} height="200px" showRoute={true} />
+            </div>
+          )}
+
           {!historialModal.pedido?.estados_log || historialModal.pedido.estados_log.length === 0 ? (
             <div className="p-6 text-center text-text-muted bg-background/50 rounded-xl border border-border">
               <History size={32} className="mx-auto mb-2 opacity-50 text-text-muted" />

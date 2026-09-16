@@ -1,6 +1,6 @@
 import React from 'react';
 
-export const Button = ({ children, variant = 'primary', size = 'md', className = '', ...props }) => {
+export const Button = ({ children, variant = 'primary', size = 'md', className = '', type = 'button', ...props }) => {
     const baseClasses = 'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 cursor-pointer border-none focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background disabled:opacity-50 disabled:cursor-not-allowed';
 
     const sizeClasses = {
@@ -19,6 +19,7 @@ export const Button = ({ children, variant = 'primary', size = 'md', className =
 
     return (
         <button
+            type={type}
             className={`${baseClasses} ${sizeClasses[size]} ${variantClasses[variant]} ${className}`}
             {...props}
         >
