@@ -9,7 +9,7 @@ function App() {
   return (
     <AuthProvider>
       <RouterProvider router={router} />
-      <Toaster position="bottom-right" toastOptions={{
+      <Toaster position="top-right" toastOptions={{
         className: 'bg-background-card text-text-main border border-border shadow-lg',
         style: {
           background: 'var(--color-background-card)',

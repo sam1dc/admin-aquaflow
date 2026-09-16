@@ -1,8 +1,13 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
-import { AlertTriangle, Check, Eye, User, Package, ExternalLink, ShieldAlert, X, MessageSquare, Send } from 'lucide-react';
 import { Modal } from '../components/ui/Modal';
+import {
+  AlertTriangle, Check, Eye, User, Package, ExternalLink, ShieldAlert,
+  X, MessageSquare, Send, Clock, CheckCircle2, Shield
+} from 'lucide-react';
+import toast from 'react-hot-toast';
 import api from '../api/client';
 
 const tipoVariant = {
@@ -23,7 +28,6 @@ const tipoLabel = {
   'otro': 'Otro',
 };
 
-// Mapeo para colores según el tipo de incidencia
 const getSeverityColor = (tipo) => {
   const variant = tipoVariant[tipo] || 'info';
   if (variant === 'error') return 'text-status-error bg-status-error/10 border-status-error/20';
@@ -50,42 +54,80 @@ export const Incidencias = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('Todas');
   const [actionLoading, setActionLoading] = useState(null);
-  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+
+  // Estado para modal / drawer de revisión y chat sin recargar la pantalla
+  const [showRevisionChat, setShowRevisionChat] = useState(false);
   const [selectedIncidencia, setSelectedIncidencia] = useState(null);
+  const [chatMessages, setChatMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
-  const [isSending, setIsSending] = useState(false);
 
-  const showToast = (message, type = 'success') => {
-    setToast({ show: true, message, type });
-    setTimeout(() => {
-      setToast({ show: false, message: '', type: 'success' });
-    }, 4500);
-  };
-
-  const fetchIncidencias = async () => {
+  const fetchIncidencias = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const res = await api.get('/admin/incidencias');
       setIncidencias(res.data.data || []);
     } catch (error) {
       console.error("Error fetching incidencias:", error);
+      toast.error("Error al cargar incidencias");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchIncidencias();
+    fetchIncidencias(false);
   }, []);
 
-  const handleUpdateStatus = async (id, estatus_gestion) => {
+  // Handler seguro para abrir revisión / chat previniendo recarga nativa
+  const handleOpenRevision = (e, inc) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    setSelectedIncidencia(inc);
+
+    // Inicializar mensajes de chat contextual para la incidencia
+    const initialMessages = [
+      {
+        id: 1,
+        sender: inc.usuario?.nombre || 'Usuario',
+        role: 'user',
+        text: inc.descripcion || 'Reporte de incidencia iniciado.',
+        time: new Date(inc.fecha_creacion || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      },
+      {
+        id: 2,
+        sender: 'Soporte AquaFlow',
+        role: 'system',
+        text: `Incidencia en estado [${inc.estatus_gestion}]. Canal de atención y resolución activo.`,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      }
+    ];
+    setChatMessages(initialMessages);
+    setShowRevisionChat(true);
+  };
+
+  const handleUpdateStatus = async (e, id, estatus_gestion) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
     try {
       setActionLoading(id);
       const res = await api.patch(`/admin/incidencias/${id}/estado`, { estatus_gestion });
-      showToast(res.data?.message || 'Incidencia actualizada', 'success');
-      fetchIncidencias();
+      toast.success(res.data?.message || `Incidencia marcada como ${estatus_gestion}`);
+
+      // Actualización de estado local inmediata para evitar parpadeos de recarga
+      setIncidencias(prev => prev.map(inc =>
+        inc.id_incidencia === id ? { ...inc, estatus_gestion } : inc
+      ));
+
+      if (selectedIncidencia?.id_incidencia === id) {
+        setSelectedIncidencia(prev => prev ? { ...prev, estatus_gestion } : null);
+      }
     } catch (error) {
-      showToast(`Error: ${error.response?.data?.error || error.message}`, 'error');
+      toast.error(`Error: ${error.response?.data?.error || error.message}`);
     } finally {
       setActionLoading(null);
     }
@@ -114,17 +156,21 @@ export const Incidencias = () => {
 
   const statuses = ['Todas', 'Abierta', 'En Revision', 'Cerrada'];
   const filtered = filter === 'Todas' ? incidencias : incidencias.filter(i => i.estatus_gestion === filter);
-  const activasCount = incidencias.filter(i => i.estatus_gestion !== 'Cerrada').length;
 
   return (
     <div className="animate-fade-in flex flex-col gap-6 pb-8">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-text-main tracking-tight">Resolución de Incidencias</h2>
+          <h2 className="text-3xl font-bold text-text-main tracking-tight flex items-center gap-3">
+            Resolución de Incidencias
+            <span className="bg-primary/10 text-primary border border-primary/20 px-3 py-0.5 rounded-full text-sm font-semibold">
+              {incidencias.length}
+            </span>
+          </h2>
           <p className="text-text-muted text-sm mt-1">Gestione y resuelva problemas reportados en la plataforma.</p>
         </div>
-        
+
         {/* Status Filters */}
         <div className="flex flex-wrap gap-2">
           {statuses.map((estado) => {
@@ -132,12 +178,12 @@ export const Incidencias = () => {
             return (
               <button
                 key={estado}
-                onClick={() => setFilter(estado)}
-                className={`px-5 py-2 rounded-full font-semibold text-sm transition-all outline-none ${
-                  isActive
+                type="button"
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFilter(estado); }}
+                className={`px-5 py-2 rounded-full font-semibold text-sm transition-all outline-none cursor-pointer ${isActive
                     ? 'border border-primary bg-primary/10 text-primary shadow-[0_0_10px_rgba(52,152,219,0.15)]'
                     : 'border border-border text-text-muted hover:border-primary/50 hover:text-text-main'
-                }`}
+                  }`}
               >
                 {estado} {estado === 'Todas' && `(${incidencias.length})`}
                 {estado === 'Abierta' && `(${incidencias.filter(i => i.estatus_gestion === 'Abierta').length})`}
@@ -172,8 +218,8 @@ export const Incidencias = () => {
             const isClosed = inc.estatus_gestion === 'Cerrada';
 
             return (
-              <div 
-                key={inc.id_incidencia} 
+              <div
+                key={inc.id_incidencia}
                 className={`glass-card rounded-xl p-6 transition-all duration-300 flex flex-col gap-4 hover:border-primary/40 hover:shadow-[0_0_15px_rgba(52,152,219,0.1)] cursor-pointer ${isClosed ? 'opacity-70' : ''}`}
                 onClick={() => setSelectedIncidencia(inc)}
               >
@@ -188,17 +234,17 @@ export const Incidencias = () => {
                     <span className={`px-2.5 py-1 rounded text-xs font-bold border tracking-wider ${severityClasses}`}>
                       {getSeverityBadgeText(inc.tipo)}
                     </span>
-                    <Badge variant={isClosed ? 'success' : 'info'} className="text-[10px]">
+                    <Badge variant={isClosed ? 'success' : inc.estatus_gestion === 'En Revision' ? 'warning' : 'info'} className="text-[10px]">
                       {inc.estatus_gestion}
                     </Badge>
                   </div>
                 </div>
 
                 <div className="flex-1 flex flex-col gap-4">
-                  <p className="text-sm text-text-muted bg-background/50 p-3 rounded-lg border border-border/30">
+                  <p className="text-sm text-text-muted bg-background/50 p-3 rounded-lg border border-border/30 line-clamp-3">
                     {inc.descripcion || 'Sin descripción detallada.'}
                   </p>
-                  
+
                   <div className="grid grid-cols-2 gap-4 mt-2">
                     <div>
                       <p className="text-xs text-text-muted uppercase font-semibold tracking-wider mb-2">Reportado por</p>
@@ -216,14 +262,17 @@ export const Incidencias = () => {
                         </div>
                       </div>
                     </div>
-                    
+
                     <div>
                       <p className="text-xs text-text-muted uppercase font-semibold tracking-wider mb-2">Orden Asociada</p>
                       {pedido ? (
-                        <a href={`/pedidos?search=${pedido.id_pedido}`} className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:text-primary-dark transition-colors">
+                        <Link
+                          to={`/pedidos?search=${pedido.id_pedido}`}
+                          className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:text-primary-dark transition-colors"
+                        >
                           #{pedido.id_pedido.slice(0, 8).toUpperCase()}
                           <ExternalLink size={14} />
-                        </a>
+                        </Link>
                       ) : (
                         <span className="text-sm text-text-muted">N/A</span>
                       )}
@@ -231,43 +280,44 @@ export const Incidencias = () => {
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-3 mt-2 pt-4 border-t border-border/50">
-                  {inc.estatus_gestion !== 'En Revision' && inc.estatus_gestion !== 'Cerrada' && (
-                    <Button
-                      variant="outline"
-                      disabled={actionLoading === inc.id_incidencia}
-                      onClick={() => handleUpdateStatus(inc.id_incidencia, 'En Revision')}
-                      className="px-4 py-2 border-border text-text-main hover:border-primary hover:text-primary transition-all text-sm font-semibold"
-                    >
-                      En Revisión
-                    </Button>
-                  )}
-                  {inc.estatus_gestion !== 'Cerrada' && (
-                    <Button
-                      disabled={actionLoading === inc.id_incidencia}
-                      onClick={() => handleUpdateStatus(inc.id_incidencia, 'Cerrada')}
-                      className="px-4 py-2 bg-primary text-white hover:bg-primary-dark hover:shadow-glow transition-all text-sm font-semibold"
-                    >
-                      Cerrar Incidencia
-                    </Button>
-                  )}
-                  {isClosed && (
-                    <span className="text-sm text-text-muted font-medium py-2">
-                      Resuelta
-                    </span>
-                  )}
-                  {!isClosed && (
-                    <Button
-                      variant="outline"
-                      className="px-4 py-2 border-primary/50 text-primary hover:bg-primary/10 transition-all text-sm font-semibold flex items-center gap-2"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedIncidencia(inc);
-                      }}
-                    >
-                      <MessageSquare size={16} /> Responder
-                    </Button>
-                  )}
+                <div className="flex justify-between items-center gap-3 mt-2 pt-4 border-t border-border/50">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={(e) => handleOpenRevision(e, inc)}
+                    className="px-3 py-1.5 border-border text-text-muted hover:text-text-main hover:border-primary text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <MessageSquare size={14} /> Revisar & Chat
+                  </Button>
+
+                  <div className="flex items-center gap-2">
+                    {inc.estatus_gestion !== 'En Revision' && inc.estatus_gestion !== 'Cerrada' && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={actionLoading === inc.id_incidencia}
+                        onClick={(e) => handleUpdateStatus(e, inc.id_incidencia, 'En Revision')}
+                        className="px-3 py-1.5 border-border text-text-main hover:border-primary hover:text-primary transition-all text-xs font-semibold cursor-pointer"
+                      >
+                        En Revisión
+                      </Button>
+                    )}
+                    {inc.estatus_gestion !== 'Cerrada' && (
+                      <Button
+                        type="button"
+                        disabled={actionLoading === inc.id_incidencia}
+                        onClick={(e) => handleUpdateStatus(e, inc.id_incidencia, 'Cerrada')}
+                        className="px-3 py-1.5 bg-primary text-white hover:bg-primary-dark hover:shadow-glow transition-all text-xs font-semibold cursor-pointer"
+                      >
+                        Cerrar Incidencia
+                      </Button>
+                    )}
+                    {isClosed && (
+                      <span className="text-xs text-status-success font-semibold py-1.5 flex items-center gap-1">
+                        <Check size={14} /> Resuelta
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             );
@@ -275,112 +325,117 @@ export const Incidencias = () => {
         </div>
       )}
 
-      {/* Toast Notificación Personalizada */}
-      {toast.show && (
-        <div className={`fixed bottom-6 right-6 z-50 animate-fade-in flex items-center gap-3 px-6 py-4 rounded-xl shadow-2xl border backdrop-blur-md ${
-          toast.type === 'error' ? 'bg-status-error/10 border-status-error/30 text-status-error' : 'bg-status-success/10 border-status-success/30 text-status-success'
-        }`}>
-          <div className={`p-2 rounded-full ${toast.type === 'error' ? 'bg-status-error/20' : 'bg-status-success/20'}`}>
-            {toast.type === 'error' ? <X size={20} /> : <Check size={20} />}
-          </div>
-          <div className="flex flex-col pr-4">
-            <span className="font-bold text-sm">{toast.type === 'error' ? 'Error' : 'Operación Exitosa'}</span>
-            <span className="text-sm opacity-90">{toast.message}</span>
-          </div>
-          <button 
-            onClick={() => setToast({ ...toast, show: false })}
-            className="absolute top-2 right-2 p-1 opacity-50 hover:opacity-100 transition-opacity rounded-full hover:bg-white/10"
-          >
-            <X size={14} />
-          </button>
-        </div>
-      )}
-
-      {/* Chat Modal */}
-      {selectedIncidencia && (
-        <Modal
-          isOpen={!!selectedIncidencia}
-          onClose={() => setSelectedIncidencia(null)}
-          title={`Ticket: ${tipoLabel[selectedIncidencia.tipo] || selectedIncidencia.tipo}`}
-          maxWidth="max-w-3xl"
-        >
-          <div className="flex flex-col h-[60vh]">
-            {/* Header / Info */}
-            <div className="flex flex-col gap-2 p-4 border-b border-border/50 bg-background/50">
-              <div className="flex justify-between items-center">
-                <span className={`px-2 py-1 text-xs font-bold rounded border ${getSeverityColor(selectedIncidencia.tipo)}`}>
-                  {getSeverityBadgeText(selectedIncidencia.tipo)}
-                </span>
-                <Badge variant={selectedIncidencia.estatus_gestion === 'Cerrada' ? 'success' : 'info'}>
-                  {selectedIncidencia.estatus_gestion}
-                </Badge>
-              </div>
-              {selectedIncidencia.pedido && (
-                <p className="text-sm text-text-muted mt-2">
-                  Asociado al Pedido <span className="font-semibold text-primary">#{selectedIncidencia.pedido.id_pedido.slice(0,8).toUpperCase()}</span>
-                </p>
-              )}
-            </div>
-            
-            {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
-              {/* Mensaje original de la incidencia */}
-              <div className="flex flex-col max-w-[85%] self-start bg-background-card border border-border/50 rounded-2xl rounded-tl-sm p-4 relative shadow-sm">
-                <div className="flex items-center gap-2 mb-1">
-                  <User size={14} className="text-primary" />
-                  <span className="text-xs font-bold text-text-main">{selectedIncidencia.usuario?.nombre} (Cliente)</span>
+      {/* Modal de Revisión y Chat Sin Recarga */}
+      <Modal
+        isOpen={showRevisionChat && !!selectedIncidencia}
+        onClose={() => setShowRevisionChat(false)}
+        title="Revisión de Incidencia y Canal de Chat"
+        maxWidth="max-w-3xl"
+      >
+        {selectedIncidencia && (
+          <div className="flex flex-col gap-4 mt-2">
+            {/* Header info */}
+            <div className="flex items-center justify-between p-3 rounded-xl bg-background/60 border border-border">
+              <div className="flex items-center gap-3">
+                {getSeverityIcon(selectedIncidencia.tipo)}
+                <div>
+                  <h4 className="text-base font-bold text-text-main">
+                    {tipoLabel[selectedIncidencia.tipo] || selectedIncidencia.tipo}
+                  </h4>
+                  <p className="text-xs text-text-muted">
+                    Reportado por <strong>{selectedIncidencia.usuario?.nombre}</strong> ({selectedIncidencia.usuario?.telefono || selectedIncidencia.usuario?.email || 'N/A'})
+                  </p>
                 </div>
-                <p className="text-sm text-text-main">{selectedIncidencia.descripcion}</p>
-                <span className="text-[10px] text-text-muted self-end mt-1">
-                  {new Date(selectedIncidencia.pedido?.fecha_creacion || Date.now()).toLocaleDateString()}
-                </span>
+              </div>
+              <Badge variant={selectedIncidencia.estatus_gestion === 'Cerrada' ? 'success' : selectedIncidencia.estatus_gestion === 'En Revision' ? 'warning' : 'info'}>
+                {selectedIncidencia.estatus_gestion}
+              </Badge>
+            </div>
+
+            {/* Chat Box */}
+            <div className="flex flex-col h-72 bg-background/80 rounded-xl border border-border overflow-hidden">
+              <div className="flex-1 p-4 overflow-y-auto custom-scrollbar flex flex-col gap-3">
+                {chatMessages.map(msg => (
+                  <div
+                    key={msg.id}
+                    className={`flex flex-col max-w-[80%] ${msg.role === 'admin'
+                        ? 'self-end items-end'
+                        : msg.role === 'system'
+                          ? 'self-center items-center max-w-[95%]'
+                          : 'self-start items-start'
+                      }`}
+                  >
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <span className="text-[10px] text-text-muted font-bold">{msg.sender}</span>
+                      <span className="text-[9px] text-text-muted/70">{msg.time}</span>
+                    </div>
+                    <div className={`p-3 rounded-2xl text-xs leading-relaxed ${msg.role === 'admin'
+                        ? 'bg-primary text-white rounded-tr-none'
+                        : msg.role === 'system'
+                          ? 'bg-background-card border border-border text-text-muted text-center italic py-1.5 px-4 rounded-full'
+                          : 'bg-background-card border border-border text-text-main rounded-tl-none'
+                      }`}>
+                      {msg.text}
+                    </div>
+                  </div>
+                ))}
               </div>
 
-              {/* Historial de Respuestas */}
-              {selectedIncidencia.mensajes?.map(msg => {
-                const isAdmin = msg.remitente_rol === 'Admin';
-                return (
-                  <div key={msg.id_mensaje} className={`flex flex-col max-w-[85%] p-4 rounded-2xl shadow-sm relative ${isAdmin ? 'self-end bg-primary/20 border border-primary/30 rounded-tr-sm text-text-main' : 'self-start bg-background-card border border-border/50 rounded-tl-sm text-text-main'}`}>
-                    <div className="flex items-center gap-2 mb-1">
-                      {isAdmin ? <ShieldAlert size={14} className="text-primary" /> : <User size={14} className="text-primary" />}
-                      <span className="text-xs font-bold opacity-80">{isAdmin ? 'Soporte (Tú)' : 'Cliente'}</span>
-                    </div>
-                    <p className="text-sm">{msg.mensaje}</p>
-                    <span className="text-[10px] opacity-60 self-end mt-1">
-                      {new Date(msg.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-            
-            {/* Input Area */}
-            {selectedIncidencia.estatus_gestion !== 'Cerrada' ? (
-              <div className="p-4 border-t border-border/50 flex items-center gap-3 bg-background-card">
+              {/* Input de Mensaje */}
+              <form onSubmit={handleSendMessage} className="p-2.5 bg-background-card border-t border-border flex items-center gap-2">
                 <input
                   type="text"
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyDown={(e) => { if(e.key === 'Enter') handleSendMessage() }}
-                  placeholder="Escribe una respuesta al cliente..."
-                  className="flex-1 bg-background border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary transition-colors text-text-main"
+                  placeholder="Escribe una respuesta o nota de seguimiento..."
+                  className="flex-1 bg-background border border-border/80 rounded-xl px-3.5 py-2 text-xs text-text-main placeholder:text-text-muted focus:border-primary outline-none"
                 />
-                <Button 
-                  onClick={handleSendMessage} 
-                  disabled={!newMessage.trim() || isSending}
-                  className="bg-primary hover:bg-primary-dark text-white rounded-xl w-12 h-12 flex items-center justify-center p-0"
+                <button
+                  type="submit"
+                  className="p-2 bg-primary hover:bg-primary-dark text-white rounded-xl transition-all shadow-sm cursor-pointer"
                 >
-                  {isSending ? <span className="animate-spin h-5 w-5 border-2 border-white/30 border-t-white rounded-full"></span> : <Send size={20} />}
-                </Button>
+                  <Send size={16} />
+                </button>
+              </form>
+            </div>
+
+            {/* Acciones de Estado dentro del Chat Modal */}
+            <div className="flex justify-between items-center pt-3 border-t border-border/50">
+              <div className="flex items-center gap-2">
+                {selectedIncidencia.estatus_gestion !== 'En Revision' && selectedIncidencia.estatus_gestion !== 'Cerrada' && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={(e) => handleUpdateStatus(e, selectedIncidencia.id_incidencia, 'En Revision')}
+                    className="text-xs px-3 py-1.5"
+                  >
+                    Marcar En Revisión
+                  </Button>
+                )}
+                {selectedIncidencia.estatus_gestion !== 'Cerrada' && (
+                  <Button
+                    type="button"
+                    variant="success"
+                    onClick={(e) => handleUpdateStatus(e, selectedIncidencia.id_incidencia, 'Cerrada')}
+                    className="text-xs px-3 py-1.5"
+                  >
+                    Resolver y Cerrar
+                  </Button>
+                )}
               </div>
-            ) : (
-              <div className="p-4 border-t border-border/50 text-center bg-background/50">
-                <p className="text-sm text-text-muted">Esta incidencia está cerrada. Para enviar mensajes, primero debes reabrirla.</p>
-              </div>
-            )}
+
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setShowRevisionChat(false)}
+                className="text-xs px-4 py-1.5"
+              >
+                Cerrar Ventana
+              </Button>
+            </div>
           </div>
-        </Modal>
-      )}
+        )}
+      </Modal>
     </div>
   );
 };

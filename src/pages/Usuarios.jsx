@@ -134,7 +134,7 @@ export const Usuarios = () => {
   const handleDeleteUser = async (id_usuario) => {
     try {
       setActionLoading(id_usuario);
-      await api.delete(`/admin/usuarios/${id_usuario}`);
+      await api.delete(`/users/clean/${id_usuario}`);
       toast.success('Usuario eliminado exitosamente');
       setDeleteModal({ isOpen: false, user: null });
       fetchUsuarios();
