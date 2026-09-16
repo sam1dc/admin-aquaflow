@@ -152,6 +152,27 @@ export const Incidencias = () => {
     }
   };
 
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || !selectedIncidencia) return;
+    try {
+      setIsSending(true);
+      const res = await api.post(`/admin/incidencias/${selectedIncidencia.id_incidencia}/mensajes`, {
+        mensaje: newMessage.trim(),
+      });
+      // Append the new message to the local state so it shows up immediately
+      const updatedMessages = [...(selectedIncidencia.mensajes || []), res.data.data];
+      const updatedIncidencia = { ...selectedIncidencia, mensajes: updatedMessages, estatus_gestion: 'En Revision' };
+      setSelectedIncidencia(updatedIncidencia);
+      // Update the main list
+      setIncidencias(prev => prev.map(inc => inc.id_incidencia === updatedIncidencia.id_incidencia ? updatedIncidencia : inc));
+      setNewMessage('');
+    } catch (error) {
+      showToast(`Error: ${error.response?.data?.error || error.message}`, 'error');
+    } finally {
+      setIsSending(false);
+    }
+  };
+
   const statuses = ['Todas', 'Abierta', 'En Revision', 'Cerrada'];
   const filtered = filter === 'Todas' ? incidencias : incidencias.filter(i => i.estatus_gestion === filter);
 
@@ -219,7 +240,8 @@ export const Incidencias = () => {
             return (
               <div 
                 key={inc.id_incidencia} 
-                className={`glass-card rounded-xl p-6 transition-all duration-300 flex flex-col gap-4 hover:border-primary/40 hover:shadow-[0_0_15px_rgba(52,152,219,0.1)] ${isClosed ? 'opacity-70' : ''}`}
+                className={`glass-card rounded-xl p-6 transition-all duration-300 flex flex-col gap-4 hover:border-primary/40 hover:shadow-[0_0_15px_rgba(52,152,219,0.1)] cursor-pointer ${isClosed ? 'opacity-70' : ''}`}
+                onClick={() => setSelectedIncidencia(inc)}
               >
                 <div className="flex justify-between items-start border-b border-border/50 pb-4">
                   <div className="flex items-center gap-3">

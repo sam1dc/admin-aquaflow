@@ -3,8 +3,9 @@ import api from '../api/client';
 import { Modal } from '../components/ui/Modal';
 import {
   MapPin, Zap, Plus, Trash2, Save, RefreshCw,
-  AlertTriangle, CheckCircle, Info, Route
+  AlertTriangle, CheckCircle, Info, Route, Map
 } from 'lucide-react';
+import { FletesMap } from '../components/Maps/FletesMap';
 
 const DEFAULTS = {
   radio_urbano_km: 10,
@@ -22,13 +23,15 @@ const InfoBox = ({ icon: Icon, color, title, children }) => (
   </div>
 );
 
-export const Fletes = () => {
+export const Fletes = ({ isEmbedded = false }) => {
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [fromDB, setFromDB] = useState(false);
   const [successModal, setSuccessModal] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [pozos, setPozos] = useState([]);
+  const [showMap, setShowMap] = useState(true);
 
   // Form state
   const [radioUrbano, setRadioUrbano] = useState(DEFAULTS.radio_urbano_km);
@@ -58,6 +61,16 @@ export const Fletes = () => {
   }, []);
 
   useEffect(() => { fetchConfig(); }, [fetchConfig]);
+
+  // Fetch pozos activos para el mapa
+  useEffect(() => {
+    api.get('/admin/pozos').then((res) => {
+      const all = res.data.data || [];
+      setPozos(all.filter((p) => p.activo));
+    }).catch((err) => {
+      console.error('[Fletes] Error al cargar pozos para el mapa:', err);
+    });
+  }, []);
 
   // --- Tramo handlers ---
   const addTramo = () => {
@@ -110,7 +123,7 @@ export const Fletes = () => {
       setSuccessModal(true);
       fetchConfig();
     } catch (e) {
-      const msg = e.response?.data?.error || 'Error al guardar la configuración';
+      const msg = e.response?.data?.detalle || e.response?.data?.error || 'Error al guardar la configuración';
       setErrorMsg(msg);
     } finally {
       setSaving(false);
@@ -118,7 +131,7 @@ export const Fletes = () => {
   };
 
   // --- Live preview ---
-  const calcularPreview = (kmTotales) => {
+  const calcularFleteKm = (kmTotales) => {
     const kmExtra = Math.max(0, kmTotales - radioUrbano);
     let flete = 0;
     let restante = kmExtra;
@@ -133,30 +146,33 @@ export const Fletes = () => {
     return flete;
   };
 
+  const calcularPreview = (kmTotales) => calcularFleteKm(kmTotales);
+
   const BASE_3500 = 28; // $8 × 3.5 = $28 base para 3500L
   const previews = [
-    { label: 'Upata (urbano)', km: 5, desc: 'Dentro del radio urbano' },
-    { label: 'Chapire (~10 km)', km: 10, desc: 'Límite del radio urbano' },
-    { label: 'El Manganeso (~20 km)', km: 20, desc: 'Zona minera' },
-    { label: 'Santa María (~30 km)', km: 30, desc: 'Ruta larga' },
+    { label: 'A 5 km del Pozo', km: 5, desc: 'Dentro del radio urbano del pozo asignado' },
+    { label: 'A 10 km del Pozo', km: 10, desc: 'Límite del radio urbano del pozo' },
+    { label: 'A 20 km del Pozo', km: 20, desc: 'Zona alejada del pozo' },
+    { label: 'A 30 km del Pozo', km: 30, desc: 'Ruta muy larga desde el pozo' },
   ];
 
   return (
     <div className="animate-fade-in flex flex-col gap-8 pb-8">
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between sm:items-end gap-4">
-        <div>
-          <h2 className="text-3xl font-bold text-text-main tracking-tight mb-2 flex items-center gap-3">
-            <Route className="text-primary" size={30} />
-            Configuración de Fletes
-          </h2>
-          <p className="text-text-muted">
-            Define el radio urbano gratuito y los tramos de cobro por kilómetro recorrido.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {fromDB ? (
+      {!isEmbedded && (
+        <div className="flex flex-col sm:flex-row justify-between sm:items-end gap-4">
+          <div>
+            <h2 className="text-3xl font-bold text-text-main tracking-tight mb-2 flex items-center gap-3">
+              <Route className="text-primary" size={30} />
+              Configuración de Fletes
+            </h2>
+            <p className="text-text-muted">
+              Define el radio urbano gratuito y los tramos de cobro por kilómetro recorrido midiendo desde el Pozo asignado.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {fromDB ? (
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-status-success/10 text-status-success font-semibold text-xs border border-status-success/20">
               <span className="w-2 h-2 rounded-full bg-status-success animate-pulse" />
               Configuración activa en BD
@@ -176,6 +192,7 @@ export const Fletes = () => {
           </button>
         </div>
       </div>
+      )}
 
       {errorMsg && (
         <div className="flex items-center gap-3 p-4 rounded-xl bg-status-error/10 border border-status-error/20 text-status-error text-sm font-medium">
@@ -245,8 +262,8 @@ export const Fletes = () => {
               </div>
 
               <InfoBox icon={Info} color="primary" title="¿Cómo funciona el radio urbano?">
-                Todo viaje dentro de los primeros <strong>{radioUrbano} km</strong> no paga flete.
-                Los kilómetros extras se cobran según los tramos configurados abajo.
+                Todo viaje dentro de los primeros <strong>{radioUrbano} km</strong> medidos <strong>desde el Pozo asignado</strong> no paga flete extra.
+                Los kilómetros adicionales se cobran según los tramos configurados abajo.
               </InfoBox>
             </div>
 
@@ -351,11 +368,11 @@ export const Fletes = () => {
           <div className="glass-card rounded-xl p-6 flex flex-col gap-4 sticky top-4">
             <h3 className="text-lg font-bold text-text-main flex items-center gap-2">
               <Zap size={18} className="text-yellow-400" />
-              Preview en Vivo
+              Simulador de Viajes
               <span className="text-xs text-text-muted font-normal ml-1">(3.500 L)</span>
             </h3>
             <p className="text-xs text-text-muted">
-              Simulación con base <strong className="text-text-main">$28.00</strong> (3500L × $8/1000L) + flete calculado + comisión.
+              Simulación de viaje base <strong>$28.00</strong> + flete (medido desde el Pozo) + comisión.
             </p>
 
             <div className="flex flex-col gap-3">
@@ -389,6 +406,41 @@ export const Fletes = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* === MAPA DE ZONAS === */}
+      <div className="glass-card rounded-xl p-6 flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-bold text-text-main flex items-center gap-2">
+            <Map size={18} className="text-primary" />
+            Mapa de Zonas por Pozo
+          </h3>
+          <button
+            type="button"
+            onClick={() => setShowMap((v) => !v)}
+            className="text-xs px-3 py-1.5 rounded-lg bg-primary/10 text-primary font-semibold hover:bg-primary/20 transition-colors"
+          >
+            {showMap ? 'Ocultar' : 'Mostrar'} Mapa
+          </button>
+        </div>
+
+        {showMap && (
+          <>
+            {pozos.length === 0 ? (
+              <div className="flex flex-col items-center py-10 text-text-muted gap-2">
+                <MapPin size={36} className="opacity-30" />
+                <p className="text-sm">No hay pozos activos para visualizar.</p>
+              </div>
+            ) : (
+              <FletesMap 
+                pozos={pozos} 
+                radioUrbano={radioUrbano} 
+                tramos={tramos} 
+                calcularFleteKm={calcularFleteKm} 
+              />
+            )}
+          </>
+        )}
       </div>
 
       {/* Modal de éxito */}
