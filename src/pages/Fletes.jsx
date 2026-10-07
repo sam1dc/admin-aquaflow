@@ -9,7 +9,7 @@ import { FletesMap } from '../components/Maps/FletesMap';
 
 const DEFAULTS = {
   radio_urbano_km: 10,
-  comision: 2.0,
+  comision: 15.0,
   tramos: [{ desde_km: 10, hasta_km: null, precio_km: 0.5 }],
 };
 
@@ -242,16 +242,17 @@ export const Fletes = ({ isEmbedded = false }) => {
 
                 <div className="space-y-2">
                   <label className="text-sm font-semibold text-text-muted block">
-                    Comisión Plataforma ($)
-                    <span className="ml-2 text-xs text-text-muted/60 font-normal">Por pedido</span>
+                    Comisión Plataforma (%)
+                    <span className="ml-2 text-xs text-text-muted/60 font-normal">Por porcentaje de pedido</span>
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-sm font-bold">$</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-sm font-bold">%</span>
                     <input
                       id="comision"
                       type="number"
                       min="0"
-                      step="0.01"
+                      max="100"
+                      step="0.1"
                       value={comision}
                       onChange={e => setComision(e.target.value)}
                       className="w-full bg-background border border-border rounded-xl py-3 pl-8 pr-4 text-text-main focus:border-primary/50 focus:ring-1 focus:ring-primary/50 outline-none font-mono"
@@ -378,7 +379,8 @@ export const Fletes = ({ isEmbedded = false }) => {
             <div className="flex flex-col gap-3">
               {previews.map(({ label, km, desc }) => {
                 const flete = calcularPreview(km);
-                const total = BASE_3500 + flete + Number(comision);
+                const comisionMonto = Math.round((BASE_3500 + flete) * (Number(comision) / 100) * 100) / 100;
+                const total = BASE_3500 + flete + comisionMonto;
                 return (
                   <div
                     key={label}
@@ -391,9 +393,14 @@ export const Fletes = ({ isEmbedded = false }) => {
                         <p className="text-xs text-primary mt-0.5">+${flete.toFixed(2)} flete</p>
                       )}
                     </div>
-                    <span className="text-xl font-bold text-text-main">
-                      ${total.toFixed(2)}
-                    </span>
+                    <div className="text-right">
+                      <span className="text-xl font-bold text-text-main block">
+                        ${total.toFixed(2)}
+                      </span>
+                      <span className="text-[11px] text-text-muted font-normal">
+                        (+${comisionMonto.toFixed(2)} com. {Number(comision)}%)
+                      </span>
+                    </div>
                   </div>
                 );
               })}
@@ -401,7 +408,7 @@ export const Fletes = ({ isEmbedded = false }) => {
 
             <div className="pt-3 border-t border-border/50">
               <p className="text-xs text-text-muted">
-                <strong className="text-text-main">Fórmula:</strong> Base + Flete (km extra × $/km) + Comisión ${Number(comision).toFixed(2)}
+                <strong className="text-text-main">Fórmula:</strong> Base + Flete + Comisión ({Number(comision)}% del subtotal)
               </p>
             </div>
           </div>
