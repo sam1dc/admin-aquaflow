@@ -10,7 +10,8 @@ import {
   Users,
   LogOut,
   MapPin,
-  DollarSign
+  DollarSign,
+  UserCheck,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -19,6 +20,7 @@ const navItems = [
   { name: 'Pedidos', path: '/pedidos', icon: Droplets },
   { name: 'Conductores', path: '/cisterneros', icon: Truck },
   { name: 'Pagos', path: '/pagos', icon: CreditCard },
+  { name: 'Solicitudes de Cambio', path: '/solicitudes-cambio', icon: UserCheck },
   { name: 'Configuración Precios', path: '/precios', icon: DollarSign },
   { name: 'Pozos', path: '/pozos', icon: MapPin },
   { name: 'Incidencias', path: '/incidencias', icon: AlertTriangle },

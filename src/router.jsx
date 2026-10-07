@@ -9,6 +9,7 @@ import { Pedidos } from './pages/Pedidos';
 import { Pagos } from './pages/Pagos';
 import { Incidencias } from './pages/Incidencias';
 import { Usuarios } from './pages/Usuarios';
+import { SolicitudesCambio } from './pages/SolicitudesCambio';
 
 export const router = createBrowserRouter([
   {
@@ -34,6 +35,10 @@ export const router = createBrowserRouter([
       {
         path: 'pagos',
         element: <Pagos />,
+      },
+      {
+        path: 'solicitudes-cambio',
+        element: <SolicitudesCambio />,
       },
       {
         path: 'pozos',
