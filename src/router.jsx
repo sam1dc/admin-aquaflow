@@ -10,6 +10,7 @@ import { Pagos } from './pages/Pagos';
 import { Incidencias } from './pages/Incidencias';
 import { Usuarios } from './pages/Usuarios';
 import { SolicitudesCambio } from './pages/SolicitudesCambio';
+import { Reportes } from './pages/Reportes';
 
 export const router = createBrowserRouter([
   {
@@ -23,6 +24,10 @@ export const router = createBrowserRouter([
       {
         index: true,
         element: <Dashboard />,
+      },
+      {
+        path: 'reportes',
+        element: <Reportes />,
       },
       {
         path: 'pedidos',

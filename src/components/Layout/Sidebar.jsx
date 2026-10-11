@@ -12,11 +12,13 @@ import {
   MapPin,
   DollarSign,
   UserCheck,
+  BarChart2,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
 const navItems = [
   { name: 'Dashboard', path: '/', icon: LayoutDashboard },
+  { name: 'Reportes', path: '/reportes', icon: BarChart2 },
   { name: 'Pedidos', path: '/pedidos', icon: Droplets },
   { name: 'Conductores', path: '/cisterneros', icon: Truck },
   { name: 'Pagos', path: '/pagos', icon: CreditCard },
