@@ -3,7 +3,7 @@ import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
-import { Users as UsersIcon, User, Truck, Shield, CheckCircle2, MoreVertical, Ban, Car, CreditCard, ExternalLink, AlertTriangle, Pencil, Trash2 } from 'lucide-react';
+import { Users as UsersIcon, User, Truck, Shield, CheckCircle2, MoreVertical, Ban, Car, CreditCard, ExternalLink, AlertTriangle, Pencil, Trash2, Search, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../api/client';
 
@@ -51,6 +51,7 @@ export const Usuarios = () => {
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('Todos');
+  const [searchQuery, setSearchQuery] = useState('');
   const [actionLoading, setActionLoading] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
   const [openDropdownId, setOpenDropdownId] = useState(null);
@@ -197,15 +198,27 @@ export const Usuarios = () => {
   };
 
   const roles = ['Todos', 'Cliente', 'Conductor', 'Admin', 'Soporte'];
-  const filtered = filter === 'Todos'
-    ? usuarios
-    : usuarios.filter(u => {
-        const rol = getRol(u);
-        return (filter === 'Cliente' && rol === 'cliente') ||
-          (filter === 'Conductor' && rol === 'cisternero') ||
-          (filter === 'Admin' && rol === 'administrador') ||
-          (filter === 'Soporte' && rol === 'soporte');
+  const filtered = (() => {
+    let result = filter === 'Todos'
+      ? usuarios
+      : usuarios.filter(u => {
+          const rol = getRol(u);
+          return (filter === 'Cliente' && rol === 'cliente') ||
+            (filter === 'Conductor' && rol === 'cisternero') ||
+            (filter === 'Admin' && rol === 'administrador') ||
+            (filter === 'Soporte' && rol === 'soporte');
+        });
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      result = result.filter(u => {
+        const nombre = (u.nombre || '').toLowerCase();
+        const email = (u.email || '').toLowerCase();
+        const telefono = (u.telefono || u.phone || '').toLowerCase();
+        return nombre.includes(q) || email.includes(q) || telefono.includes(q);
       });
+    }
+    return result;
+  })();
 
   const getUserIcon = (rol) => {
     if (rol === 'cliente') return <User size={24} className="text-status-location" />;
@@ -249,6 +262,24 @@ export const Usuarios = () => {
               </button>
             );
           })}
+        </div>
+        <div className="relative w-full xl:w-80">
+          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Buscar por nombre, correo o teléfono…"
+            className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-background border border-border text-text-main text-sm focus:border-primary/50 outline-none transition-all placeholder:text-text-muted/60"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-main transition-colors cursor-pointer"
+            >
+              <X size={14} />
+            </button>
+          )}
         </div>
       </div>
 

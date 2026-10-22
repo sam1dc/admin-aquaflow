@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
-import { 
+import {
   Droplets, Package, MapPin, User, Truck, ChevronDown,
   Search, Clock, CheckCircle2, XCircle, Loader2, ChevronLeft, ChevronRight,
   CalendarDays, Wallet, AlertTriangle, Phone, Mail, Building, History
@@ -72,7 +72,7 @@ export const Pedidos = () => {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const searchParam = params.get('search');
-    
+
     if (searchParam) {
       setSearchTerm(searchParam);
       setFilter('Todos');
@@ -152,11 +152,10 @@ export const Pedidos = () => {
               <button
                 key={estado.key}
                 onClick={() => setFilter(estado.key)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 border ${
-                  isActive
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 border ${isActive
                     ? 'glass-panel border-primary text-primary shadow-[0_0_15px_rgba(52,152,219,0.15)]'
                     : 'glass-panel text-text-muted hover:text-text-main border-transparent'
-                }`}
+                  }`}
               >
                 {estado.label}
               </button>
@@ -315,21 +314,24 @@ export const Pedidos = () => {
 
                         {/* Coordenadas e Información de Ruta */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
-                          <div className="flex items-start gap-2 bg-background-card p-2.5 rounded-lg border border-border/60">
+                          <div className="flex items-start gap-2 bg-background-card p-2.5 rounded-lg border border-border/60 h-auto">
                             <MapPin size={16} className="text-primary mt-0.5 shrink-0" />
-                            <div className="min-w-0">
+                            <div className="min-w-0 flex-1">
                               <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider">Punto de Carga</p>
-                              <p className="text-xs font-medium text-text-main truncate">
+                              <p className="text-xs font-medium text-text-main break-words leading-tight">
                                 {p.direccion_origen || 'Llenadero Principal'}
                               </p>
                             </div>
                           </div>
-                          <div className="flex items-start gap-2 bg-background-card p-2.5 rounded-lg border border-border/60">
+                          <div className="flex items-start gap-2 bg-background-card p-2.5 rounded-lg border border-border/60 h-auto">
                             <MapPin size={16} className="text-status-neon mt-0.5 shrink-0" />
-                            <div className="min-w-0">
+                            <div className="min-w-0 flex-1">
                               <p className="text-[10px] text-status-neon uppercase font-bold tracking-wider">Destino</p>
-                              <p className="text-xs font-medium text-text-main truncate">
-                                {p.direccion_destino || (p.coordenadas_destino ? `GPS: ${p.coordenadas_destino}` : 'Bolívar, Venezuela')}
+                              <p
+                                className="text-xs font-medium text-text-main break-words line-clamp-2 leading-tight"
+                                title={p.coordenadas_destino ? `Coordenadas: ${p.coordenadas_destino}` : undefined}
+                              >
+                                {p.direccion_destino || p.direccion_entrega || p.direccion || (p.coordenadas_destino ? `GPS: ${p.coordenadas_destino}` : 'Ubicación en mapa')}
                               </p>
                             </div>
                           </div>
@@ -391,9 +393,9 @@ export const Pedidos = () => {
       )}
 
       {/* Modal Historial del Pedido */}
-      <Modal 
-        isOpen={historialModal.isOpen} 
-        onClose={() => setHistorialModal({ isOpen: false, pedido: null })} 
+      <Modal
+        isOpen={historialModal.isOpen}
+        onClose={() => setHistorialModal({ isOpen: false, pedido: null })}
         title="Historial del Pedido"
       >
         <div className="mt-4 flex flex-col gap-4">
@@ -427,9 +429,9 @@ export const Pedidos = () => {
                 })}
             </div>
           )}
-          
+
           <div className="flex justify-end pt-4 border-t border-border/50">
-            <button 
+            <button
               onClick={() => setHistorialModal({ isOpen: false, pedido: null })}
               className="px-4 py-2 bg-background-card border border-border hover:bg-white/5 rounded-lg text-sm font-semibold transition-colors"
             >
