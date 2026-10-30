@@ -70,6 +70,25 @@ export const Usuarios = () => {
     documento_identidad: null, licencia_documento: null, foto_vehiculo: null, foto_perfil: null
   });
 
+  // Perdona una sanción pendiente: deja de cobrarse en la siguiente entrega.
+  const [exonerando, setExonerando] = useState(null);
+  const exonerarSancion = async (idSancion) => {
+    try {
+      setExonerando(idSancion);
+      await api.patch(`/admin/sanciones/${idSancion}/exonerar`);
+      setSelectedUser((u) => u && {
+        ...u,
+        sanciones: (u.sanciones || []).map((s) => (s.id_sancion === idSancion ? { ...s, estado: 'Exonerada' } : s)),
+      });
+      toast.success('Sanción exonerada: ya no se cobrará');
+      fetchUsuarios();
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'No se pudo exonerar la sanción');
+    } finally {
+      setExonerando(null);
+    }
+  };
+
   const fetchUsuarios = async () => {
     try {
       setLoading(true);
@@ -552,7 +571,19 @@ export const Usuarios = () => {
                         <p className="text-sm font-medium text-text-main">{s.motivo}</p>
                         {Number(s.monto_sancion) > 0 && <p className="text-xs font-bold text-status-error mt-1">${Number(s.monto_sancion).toFixed(2)}</p>}
                       </div>
-                      <Badge variant={s.estado === 'Pagada' ? 'success' : s.estado === 'Exonerada' ? 'info' : 'warning'}>{s.estado}</Badge>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {s.estado === 'Pendiente' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={exonerando === s.id_sancion}
+                            onClick={() => exonerarSancion(s.id_sancion)}
+                          >
+                            {exonerando === s.id_sancion ? 'Exonerando…' : 'Exonerar'}
+                          </Button>
+                        )}
+                        <Badge variant={s.estado === 'Pagada' ? 'success' : s.estado === 'Exonerada' ? 'info' : 'warning'}>{s.estado}</Badge>
+                      </div>
                     </div>
                   ))}
                 </div>
