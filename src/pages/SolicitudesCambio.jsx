@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { CAMPOS_RECHAZABLES, CamposRechazadosPicker } from '../components/CamposRechazadosPicker';
 import api from '../api/client';
 import { Modal } from '../components/ui/Modal';
@@ -32,7 +33,14 @@ export const SolicitudesCambio = () => {
   const [motivoRechazo, setMotivoRechazo] = useState('');
   const [camposRechazados, setCamposRechazados] = useState([]);
   const [showRejectInput, setShowRejectInput] = useState(false);
+
+  useEffect(() => {
+    if (showRejectInput) bloqueRechazoRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [showRejectInput]);
   const [toastMessage, setToastMessage] = useState(null);
+  // El bloque del motivo aparece al final del modal, fuera de la vista: sin
+  // desplazarse hasta él parecía que "Rechazar Solicitud" no hacía nada.
+  const bloqueRechazoRef = useRef(null);
 
   const fetchSolicitudes = useCallback(async () => {
     setLoading(true);
@@ -120,10 +128,13 @@ export const SolicitudesCambio = () => {
 
   return (
     <div className="animate-fade-in flex flex-col gap-6 pb-8">
-      {/* Toast Notificación */}
-      {toastMessage && (
+      {/* Toast en document.body y por encima del Modal (z-[9999]): dentro de
+          la página quedaba bajo el contenedor con animate-fade-in, cuyo
+          transform lo encierra; así un error al rechazar no se veía detrás del
+          modal y el fixed no se pegaba a la ventana. */}
+      {toastMessage && createPortal(
         <div
-          className={`fixed top-5 right-5 z-[9999] flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-2xl text-white font-medium transition-all ${
+          className={`fixed top-5 right-5 z-[10000] flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-2xl text-white font-medium transition-all ${
             toastMessage.type === 'error'
               ? 'bg-status-error border border-status-error/30'
               : toastMessage.type === 'info'
@@ -137,7 +148,8 @@ export const SolicitudesCambio = () => {
             <CheckCircle size={20} />
           )}
           <span>{toastMessage.msg}</span>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Header */}
@@ -437,7 +449,7 @@ export const SolicitudesCambio = () => {
 
             {/* Input de motivo de rechazo si fue pulsado Rechazar */}
             {showRejectInput && selectedSolicitud.estatus === 'Pendiente' && (
-              <div className="space-y-2 p-4 rounded-xl bg-status-error/10 border border-status-error/30 animate-fade-in">
+              <div ref={bloqueRechazoRef} className="space-y-2 p-4 rounded-xl bg-status-error/10 border border-status-error/30 animate-fade-in">
                 <label className="text-xs font-bold text-status-error block">
                   Indica el motivo de rechazo para el usuario:
                 </label>

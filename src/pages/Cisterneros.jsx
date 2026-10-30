@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
@@ -394,9 +395,12 @@ export const Cisterneros = () => {
         </div>
       </Modal>
 
-      {/* Toast Notificación */}
-      {toast.show && (
-        <div className={`fixed bottom-6 right-6 z-50 animate-fade-in flex items-center gap-3 px-6 py-4 rounded-xl shadow-2xl border backdrop-blur-md ${
+      {/* Toast en document.body y por encima del Modal (z-[9999]): dentro de
+          la página quedaba bajo el contenedor con animate-fade-in, cuyo
+          transform lo encierra; así un error al rechazar no se veía detrás del
+          modal y el fixed no se pegaba a la ventana. */}
+      {toast.show && createPortal(
+        <div className={`fixed bottom-6 right-6 z-[10000] animate-fade-in flex items-center gap-3 px-6 py-4 rounded-xl shadow-2xl border backdrop-blur-md ${
           toast.type === 'error' ? 'bg-status-error/10 border-status-error/30 text-status-error' : 'bg-status-success/10 border-status-success/30 text-status-success'
         }`}>
           <div className={`p-2 rounded-full ${toast.type === 'error' ? 'bg-status-error/20' : 'bg-status-success/20'}`}>
@@ -412,7 +416,8 @@ export const Cisterneros = () => {
           >
             <X size={14} />
           </button>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

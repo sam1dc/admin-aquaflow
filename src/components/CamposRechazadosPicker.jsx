@@ -17,6 +17,8 @@ export const CAMPOS_RECHAZABLES = [
  */
 export const CamposRechazadosPicker = ({ value, onChange, opciones = CAMPOS_RECHAZABLES }) => {
   const toggle = (id) => onChange(value.includes(id) ? value.filter(v => v !== id) : [...value, id]);
+  // Una solicitud que solo cambia, p. ej., el teléfono no tiene nada que marcar.
+  if (opciones.length === 0) return null;
   return (
     <div>
       <p className="text-xs font-medium text-text-muted mb-2">¿Qué debe volver a enviar?</p>
