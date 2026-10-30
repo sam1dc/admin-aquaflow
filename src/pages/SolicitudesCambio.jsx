@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { CAMPOS_RECHAZABLES, CamposRechazadosPicker } from '../components/CamposRechazadosPicker';
 import api from '../api/client';
 import { Modal } from '../components/ui/Modal';
 import {
@@ -29,6 +30,7 @@ export const SolicitudesCambio = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [motivoRechazo, setMotivoRechazo] = useState('');
+  const [camposRechazados, setCamposRechazados] = useState([]);
   const [showRejectInput, setShowRejectInput] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
 
@@ -57,6 +59,7 @@ export const SolicitudesCambio = () => {
   const handleOpenReview = (solicitud) => {
     setSelectedSolicitud(solicitud);
     setMotivoRechazo('');
+    setCamposRechazados([]);
     setShowRejectInput(false);
     setModalOpen(true);
   };
@@ -79,6 +82,7 @@ export const SolicitudesCambio = () => {
       await api.patch(`/admin/solicitudes-cambio/${selectedSolicitud.id_solicitud}`, {
         aprobado,
         motivo_rechazo: motivoRechazo.trim() || undefined,
+        campos_rechazados: aprobado ? undefined : camposRechazados,
       });
 
       showToast(
@@ -444,6 +448,11 @@ export const SolicitudesCambio = () => {
                   className="w-full bg-background border border-status-error/40 rounded-xl p-3 text-xs text-text-main outline-none focus:ring-1 focus:ring-status-error"
                   rows={2}
                 />
+                <CamposRechazadosPicker
+                  value={camposRechazados}
+                  onChange={setCamposRechazados}
+                  opciones={camposDeSolicitud(selectedSolicitud.datos_solicitados)}
+                />
               </div>
             )}
 
@@ -536,4 +545,21 @@ const renderDataFields = (data, isHighlight = false) => {
       </div>
     );
   });
+};
+
+/** Solo se ofrece marcar lo que la solicitud de verdad pedía cambiar. */
+const camposDeSolicitud = (datos = {}) => {
+  const ids = new Set();
+  if (datos.documento_identidad_url) ids.add('documento_identidad');
+  if (datos.licencia_documento_url) ids.add('licencia_documento');
+  if (datos.foto_url) ids.add('foto_perfil');
+  if (['nombre', 'telefono', 'email', 'identificacion_fiscal', 'rif_personal', 'licencia_conducir'].some(k => datos[k])) {
+    ids.add('datos_personales');
+  }
+  if (datos.vehiculo) {
+    const v = datos.vehiculo;
+    if (v.fotos_url) ids.add('foto_vehiculo');
+    if (v.marca || v.modelo || v.placa || v.capacidad_tanque) ids.add('datos_vehiculo');
+  }
+  return CAMPOS_RECHAZABLES.filter(c => ids.has(c.id));
 };

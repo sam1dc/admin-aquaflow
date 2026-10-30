@@ -5,6 +5,7 @@ import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { Check, X, User, Truck, Phone, Mail, FileText, Badge as BadgeIcon, ChevronLeft, ChevronRight, Eye, Image, Clock, ShieldCheck } from 'lucide-react';
 import api from '../api/client';
+import { CAMPOS_RECHAZABLES, CamposRechazadosPicker } from '../components/CamposRechazadosPicker';
 
 const PAGE_SIZE_OPTIONS = [10, 15, 20, 25];
 
@@ -14,6 +15,7 @@ export const Cisterneros = () => {
   const [actionLoading, setActionLoading] = useState(null);
   const [rejectModal, setRejectModal] = useState({ isOpen: false, id: null });
   const [motivoRechazo, setMotivoRechazo] = useState('');
+  const [camposRechazados, setCamposRechazados] = useState([]);
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
   const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 10, totalPages: 1 });
@@ -79,12 +81,17 @@ export const Cisterneros = () => {
 
       setActionLoading(id);
 
-      await api.patch(`/admin/cisterneros/${id}/validar`, { aprobado, motivo_rechazo: motivo });
+      await api.patch(`/admin/cisterneros/${id}/validar`, {
+        aprobado,
+        motivo_rechazo: motivo,
+        campos_rechazados: aprobado ? undefined : camposRechazados,
+      });
       setCisterneros(prev => prev.filter(c => c.id_cisternero !== id));
 
       if (!aprobado) {
         setRejectModal({ isOpen: false, id: null });
         setMotivoRechazo('');
+        setCamposRechazados([]);
       }
 
       showToast(aprobado ? 'Conductor aprobado exitosamente' : 'Solicitud rechazada', aprobado ? 'success' : 'error');
@@ -150,6 +157,18 @@ export const Cisterneros = () => {
                     )}
                   </div>
                   <h4 className="text-xl text-text-main font-semibold text-center">{c.usuario.nombre}</h4>
+                  {/* Ya se rechazó una vez y el conductor reenvió las correcciones */}
+                  {c.motivo_rechazo && (
+                    <div className="mt-3 w-full rounded-lg border border-status-warning/40 bg-status-warning/10 p-2 text-xs text-text-main">
+                      <p className="font-semibold text-status-warning">Reenvío tras rechazo</p>
+                      <p className="text-text-muted mt-1">"{c.motivo_rechazo}"</p>
+                      {c.campos_rechazados?.length > 0 && (
+                        <p className="text-text-muted mt-1">
+                          Corrigió: {c.campos_rechazados.map(id => CAMPOS_RECHAZABLES.find(f => f.id === id)?.label ?? id).join(', ')}
+                        </p>
+                      )}
+                    </div>
+                  )}
 
                   <div className="w-full mt-4 space-y-3">
                     <div className="flex items-center gap-2 text-text-muted">
@@ -308,7 +327,7 @@ export const Cisterneros = () => {
       {/* Modal para Rechazar Conductor */}
       <Modal
         isOpen={rejectModal.isOpen}
-        onClose={() => setRejectModal({ isOpen: false, id: null })}
+        onClose={() => { setRejectModal({ isOpen: false, id: null }); setCamposRechazados([]); }}
         title="Rechazar solicitud del conductor"
       >
         <div className="flex flex-col gap-4 mt-4">
@@ -319,6 +338,7 @@ export const Cisterneros = () => {
             className="w-full bg-background/50 border border-border rounded-xl p-3 text-sm text-text-main resize-none focus:border-status-error focus:ring-1 focus:ring-status-error outline-none"
             rows={4}
           />
+          <CamposRechazadosPicker value={camposRechazados} onChange={setCamposRechazados} />
           <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-border/50">
             <Button variant="secondary" onClick={() => setRejectModal({ isOpen: false, id: null })}>Cancelar</Button>
             <Button
