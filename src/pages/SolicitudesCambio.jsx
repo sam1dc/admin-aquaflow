@@ -451,7 +451,7 @@ export const SolicitudesCambio = () => {
                 <CamposRechazadosPicker
                   value={camposRechazados}
                   onChange={setCamposRechazados}
-                  opciones={camposDeSolicitud(selectedSolicitud.datos_solicitados)}
+                  opciones={camposDeSolicitud(selectedSolicitud.datos_solicitados, selectedSolicitud.datos_anteriores)}
                 />
               </div>
             )}
@@ -547,8 +547,15 @@ const renderDataFields = (data, isHighlight = false) => {
   });
 };
 
-/** Solo se ofrece marcar lo que la solicitud de verdad pedía cambiar. */
-const camposDeSolicitud = (datos = {}) => {
+/**
+ * Solo se ofrece marcar lo que la solicitud de verdad pedía cambiar. El backend
+ * manda el vehículo completo aunque solo cambie la foto, así que se compara con
+ * datos_anteriores (sin la firma de la URL, que cambia en cada consulta).
+ */
+const sinFirma = (url) => (typeof url === 'string' ? url.split('?')[0] : url);
+const camposDeSolicitud = (datos = {}, anteriores = {}) => {
+  datos = datos || {};
+  anteriores = anteriores || {};
   const ids = new Set();
   if (datos.documento_identidad_url) ids.add('documento_identidad');
   if (datos.licencia_documento_url) ids.add('licencia_documento');
@@ -558,8 +565,11 @@ const camposDeSolicitud = (datos = {}) => {
   }
   if (datos.vehiculo) {
     const v = datos.vehiculo;
-    if (v.fotos_url) ids.add('foto_vehiculo');
-    if (v.marca || v.modelo || v.placa || v.capacidad_tanque) ids.add('datos_vehiculo');
+    const antes = anteriores.vehiculo || {};
+    if (v.fotos_url && sinFirma(v.fotos_url) !== sinFirma(antes.fotos_url)) ids.add('foto_vehiculo');
+    if (['marca', 'modelo', 'placa', 'capacidad_tanque'].some(k => v[k] && String(v[k]) !== String(antes[k] ?? ''))) {
+      ids.add('datos_vehiculo');
+    }
   }
   return CAMPOS_RECHAZABLES.filter(c => ids.has(c.id));
 };

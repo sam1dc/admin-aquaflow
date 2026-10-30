@@ -72,6 +72,14 @@ export const Cisterneros = () => {
     fetchCisterneros(1, newSize);
   };
 
+  // Cancelar y cerrar dejan el modal limpio: si no, el motivo y las casillas
+  // de un conductor aparecían marcados al rechazar al siguiente.
+  const cerrarRechazo = () => {
+    setRejectModal({ isOpen: false, id: null });
+    setMotivoRechazo('');
+    setCamposRechazados([]);
+  };
+
   const handleValidation = async (id, aprobado, motivo = undefined) => {
     try {
       if (!aprobado && motivo === undefined) {
@@ -164,7 +172,7 @@ export const Cisterneros = () => {
                       <p className="text-text-muted mt-1">"{c.motivo_rechazo}"</p>
                       {c.campos_rechazados?.length > 0 && (
                         <p className="text-text-muted mt-1">
-                          Corrigió: {c.campos_rechazados.map(id => CAMPOS_RECHAZABLES.find(f => f.id === id)?.label ?? id).join(', ')}
+                          Se le pidió: {c.campos_rechazados.map(id => CAMPOS_RECHAZABLES.find(f => f.id === id)?.label ?? id).join(', ')}
                         </p>
                       )}
                     </div>
@@ -327,7 +335,7 @@ export const Cisterneros = () => {
       {/* Modal para Rechazar Conductor */}
       <Modal
         isOpen={rejectModal.isOpen}
-        onClose={() => { setRejectModal({ isOpen: false, id: null }); setCamposRechazados([]); }}
+        onClose={cerrarRechazo}
         title="Rechazar solicitud del conductor"
       >
         <div className="flex flex-col gap-4 mt-4">
@@ -340,7 +348,7 @@ export const Cisterneros = () => {
           />
           <CamposRechazadosPicker value={camposRechazados} onChange={setCamposRechazados} />
           <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-border/50">
-            <Button variant="secondary" onClick={() => setRejectModal({ isOpen: false, id: null })}>Cancelar</Button>
+            <Button variant="secondary" onClick={cerrarRechazo}>Cancelar</Button>
             <Button
               className="bg-status-error text-white hover:bg-status-error/80 transition-all rounded-lg cursor-pointer px-5 py-2.5 text-sm font-medium"
               onClick={() => handleValidation(rejectModal.id, false, motivoRechazo)}
