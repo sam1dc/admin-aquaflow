@@ -11,6 +11,7 @@ import { Incidencias } from './pages/Incidencias';
 import { Usuarios } from './pages/Usuarios';
 import { SolicitudesCambio } from './pages/SolicitudesCambio';
 import { Reportes } from './pages/Reportes';
+import { Retiros } from './pages/Retiros';
 
 export const router = createBrowserRouter([
   {
@@ -40,6 +41,10 @@ export const router = createBrowserRouter([
       {
         path: 'pagos',
         element: <Pagos />,
+      },
+      {
+        path: 'retiros',
+        element: <Retiros />,
       },
       {
         path: 'solicitudes-cambio',
